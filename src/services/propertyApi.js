@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:2000/api';
+const API_BASE_URL = 'https://boscoham.onrender.com/api';
 
 async function requestJson(endpoint, options, resourceName) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

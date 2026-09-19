@@ -15,10 +15,10 @@ export default function Footer() {
         <div className="footer-items">
             <h4>Quick Links</h4>
             <ul className="quick-links">
-              <Link to={"/properties"}>  <li className="quick-link">Properties</li></Link>
-              <Link to={"/apartments"}>  <li className="quick-link">Aparments</li></Link>
-              <Link to={"/shortlets"}>  <li className="quick-link">Shortlets</li></Link>
-              <Link to={"/contact"}>  <li className="quick-link">Contact</li></Link>
+            <li className="quick-link">  <Link to={"/properties"}>  Properties</Link></li>
+             <li className="quick-link"> <Link to={"/apartments"}>  Apartments</Link></li>
+              <li className="quick-link"> <Link to={"/shortlets"}>  Shortlets</Link></li>
+              <li className="quick-link"> <Link to={"/contact"}>  Contact</Link></li>
             </ul>
         </div>
         <div className="footer-items">
