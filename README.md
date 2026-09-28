@@ -1,122 +1,92 @@
 # Boscoham Properties Platform
 
-A Node.js property management backend for managing property listings, apartments, shortlets, users, and viewing schedules. The app uses Express for the HTTP API, PostgreSQL for persistent data storage, Redis for sessions, Supabase for file uploads, and Resend for email notifications.
+Boscoham Properties Platform is an Express API for managing property listings, apartments and long-term tenancies, shortlets and bookings, tenant records, and property-viewing requests.
 
-## Overview
+It uses PostgreSQL for application data, Redis-backed Express sessions for authentication, Supabase Storage for images, and Resend for password-reset email.
 
-This platform supports:
+## Features
 
-- User signup and login with session-based authentication
-- Password reset flow via email
-- Property creation, updates, and deletion
-- Apartment and unit management
-- Shortlet and shortlet-unit management
-- Viewing request creation and admin approval/rejection
-- Admin-only management endpoints
-- Image uploads to Supabase storage
+- Session-based user signup, login, logout, and password reset
+- Public property, apartment, and shortlet catalogues
+- Admin-managed property, apartment, shortlet, tenant, booking, stay, and viewing workflows
+- Apartment-unit tenancy assignment with overlap checks
+- Shortlet booking conflict checks for pending and confirmed bookings
+- Supabase image uploads for properties, apartments, and units
 
-## Tech Stack
+## Stack
 
-- Node.js
-- Express
-- PostgreSQL
-- Redis
+- Node.js and Express 5
+- PostgreSQL (`pg`)
+- Redis and `express-session`
 - Supabase Storage
-- Resend Email Service
-- Joi validation
-- bcrypt password hashing
-- Multer for multipart uploads
-- EJS for server-rendered views if needed for auth flows
-
-## Project Structure
-
-```text
-.
-├── app.js
-├── server.js
-├── db.js
-├── redis.js
-├── supabase.js
-├── config.env
-├── Controllers/
-├── Models/
-├── Routers/
-├── Services/
-├── upload/
-└── README.md
-```
+- Resend
+- Joi, bcrypt, Multer, CORS, and Helmet
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 18 or later
 - npm
-- PostgreSQL database
-- Redis instance
-- Supabase project with a storage bucket named `upload`
-- Email provider credentials for Resend
+- PostgreSQL
+- Redis
+- A Supabase project with an `upload` storage bucket
+- A Resend API key and verified sender address
 
-## Installation
+## Setup
 
-1. Clone the repository
-2. Install dependencies:
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-3. Create a `config.env` file in the project root using the values from your environment.
-
-## Required Environment Variables
+Create `config.env` in the project root. Do not commit this file or any real credentials.
 
 ```env
-DATABASE_CONNECTION_STRING=postgresql://...
-SESSION_SECRET_KEY=your_session_secret
-RESEND_API_KEY=your_resend_key
-BUSINESS_NAME=BOSCOHAMPROPERTIES
-REDIS_PASSWORD=your_redis_password
-REDIS_USERNAME=default
-REDIS_HOST=your_redis_host
+DATABASE_CONNECTION_STRING=postgresql://USER:PASSWORD@HOST:5432/DATABASE
+SESSION_SECRET_KEY=replace-with-a-long-random-secret
+REDIS_HOST=your-redis-host
 REDIS_PORT=6379
-RESEND_EMAIL_DOMAIN=boscoham.homes
-EMAIL_FROM="Boscoham <noreply@boscoham.homes>"
-PRODUCTION_API_DOMAIN=https://your-domain.com/
+REDIS_USERNAME=default
+REDIS_PASSWORD=your-redis-password
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-CORS_ORIGIN=http://localhost:3000
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+RESEND_API_KEY=re_your_resend_api_key
+EMAIL_FROM="Boscoham <noreply@example.com>"
+PRODUCTION_API_DOMAIN=https://api.example.com/
 NODE_ENV=development
+PORT=2000
+# Optional: a single permitted frontend origin.
+CORS_ORIGIN=http://localhost:5173
 ```
 
-## Run the App
-
-Start the API:
+Start the server:
 
 ```bash
 npm start
 ```
 
-Run with auto-restart during development:
+For development with automatic restarts:
 
 ```bash
 npm run dev
 ```
 
-The app listens on port `2000` by default.
+The default API URL is `http://localhost:2000`.
 
-## Base URL
+## Authentication
 
-```text
-http://localhost:2000
-```
+Authentication is cookie/session based. Send requests with credentials enabled from a browser client (for example, `credentials: 'include'` with `fetch`). A logged-in session lasts 30 minutes. Admin routes require a session belonging to an admin user.
 
-## Authentication Routes
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| POST | `/api/auth/signup` | Public | Create a user account |
+| POST | `/api/auth/login` | Public | Start a session |
+| POST | `/api/auth/logout` | Session | End the current session |
+| GET | `/api/auth/me` | Public | Return the authenticated user, if present |
+| POST | `/api/auth/forgot-password` | Public | Send a password-reset email |
+| POST | `/api/auth/reset-password/:token` | Public | Set a new password using a reset token |
 
-### Sign up
-
-```http
-POST /api/auth/signup
-```
-
-Request body:
+Example signup payload:
 
 ```json
 {
@@ -128,266 +98,22 @@ Request body:
 }
 ```
 
-### Login
+## API routes
 
-```http
-POST /api/auth/login
-```
+`UUID` path parameters below must be valid UUIDs.
 
-```json
-{
-  "email": "jane@example.com",
-  "password": "StrongPass1@"
-}
-```
+### Properties
 
-### Current user
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| GET | `/api/properties` | Public |
+| POST | `/api/properties` | Admin |
+| PATCH | `/api/properties/:id` | Admin |
+| DELETE | `/api/properties/:id` | Admin |
 
-```http
-GET /api/auth/me
-```
+Property create and update requests use `multipart/form-data`. Create requires `title`, `city`, `state`, `address`, `type`, `price`, `description`, and `highlighted`; attach up to 10 JPG, PNG, or WEBP files using the `image` field. `beds` and `baths` are optional whole-number fields from `0` to `32767` (for example, `beds: 3` and `baths: 2`). Send either field in a PATCH request to change only that value. They are returned as `beds` and `baths` by `GET /api/properties`; older listings without values return `null`. Properties, apartments, and shortlets support optional `features`: send a JSON array such as `["Swimming pool", "Tennis court"]`; send `null` in an update to clear it.
 
-### Logout
-
-```http
-POST /api/auth/logout
-```
-
-### Forgot password
-
-```http
-POST /api/auth/forgot-password
-```
-
-```json
-{
-  "email": "jane@example.com"
-}
-```
-
-### Reset password
-
-```http
-POST /api/auth/reset-password/:token
-```
-
-## Property Routes
-
-### Get all properties
-
-```http
-GET /api/properties
-```
-
-### Create a property
-
-```http
-POST /api/properties
-```
-
-Requires admin authentication. Supports multipart file upload with `image` or multiple files.
-
-### Update a property
-
-```http
-PATCH /api/properties/:id
-```
-
-### Delete a property
-
-```http
-DELETE /api/properties/:id
-```
-
-## Apartment Routes
-
-### Get all apartments
-
-```http
-GET /api/apartments
-```
-
-### Create an apartment
-
-```http
-POST /api/apartments
-```
-
-### Update apartment
-
-```http
-PATCH /api/apartments/:id
-```
-
-### Delete apartment
-
-```http
-DELETE /api/apartments/:id
-```
-
-### Update apartment unit
-
-```http
-PATCH /api/apartments/:id/units/:unitId
-```
-
-### Delete apartment unit
-
-```http
-DELETE /api/apartments/:id/units/:unitId
-```
-
-## Shortlet Routes
-
-### Get all shortlets
-
-```http
-GET /api/shortlets
-```
-
-### Get one shortlet
-
-```http
-GET /api/shortlets/:id
-```
-
-### Create shortlet
-
-```http
-POST /api/shortlets
-```
-
-### Create shortlet unit
-
-```http
-POST /api/shortlets/:id/units
-```
-
-### Update shortlet unit
-
-```http
-PATCH /api/shortlets/:id/units/:unitId
-```
-
-### Delete shortlet unit
-
-```http
-DELETE /api/shortlets/:id/units/:unitId
-```
-
-## Viewing Routes
-
-### Create a viewing
-
-```http
-POST /api/viewings
-```
-
-## Admin Routes
-
-### Get all tenants
-
-```http
-GET /api/admin/tenants
-```
-
-### Create tenant
-
-```http
-POST /api/admin/tenants
-```
-
-### Update tenant
-
-```http
-PATCH /api/admin/tenants/:id
-```
-
-### Delete tenant
-
-```http
-DELETE /api/admin/tenants/:id
-```
-
-### Assign tenant to apartment
-
-```http
-POST /api/admin/assign-tenant/:id
-```
-
-### Get all viewings
-
-```http
-GET /api/admin/viewings
-```
-
-### Accept viewing
-
-```http
-POST /api/admin/viewings/accept/:id
-```
-
-### Reject viewing
-
-```http
-POST /api/admin/viewings/reject/:id
-```
-
-## Response Convention
-
-Most endpoints return JSON in this format:
-
-```json
-{
-  "status": "success",
-  "data": {}
-}
-```
-
-Error responses follow this pattern:
-
-```json
-{
-  "status": "fail",
-  "message": "Description of the error"
-}
-```
-
-## Notes
-
-- Protected admin routes require an authenticated admin session.
-- Redis is used for Express session storage and temporary auth-related values.
-- Supabase storage handles uploaded property and apartment images.
-- The server connects to PostgreSQL on startup and fails fast if the database is unavailable.
-
-## License
-
-This project is licensed under the ISC license.
-
-  ]
-}
-```
-
-## 2) Create a property
-
-- Method: POST
-- Route: /api/properties
-- Auth: Admin required
-- Content-Type: multipart/form-data
-
-### Required fields
-
-- title: string
-- city: string
-- state: string
-- address: string
-- type: string
-- price: number
-- description: string
-- highlighted: string
-- image: one or more image files
-
-### Example form-data
+Example property form fields:
 
 ```text
 title: Sunset Villa
@@ -398,505 +124,165 @@ type: villa
 price: 2500000
 description: Luxury home with pool
 highlighted: yes
-image: <file1>
-image: <file2>
+beds: 4
+baths: 3
 ```
 
-### Response example
+`GET /api/properties` includes the property details required for listing cards, including `beds`, `baths`, and `images`:
 
 ```json
 {
   "status": "success",
-  "message": "Property Created Successfully"
+  "data": [{
+    "id": "00000000-0000-0000-0000-000000000000",
+    "title": "Sunset Villa",
+    "beds": 4,
+    "baths": 3,
+    "images": [{ "image": "https://example.com/property.jpg" }]
+  }]
 }
 ```
 
-## 3) Update a property
+### Apartments and apartment units
 
-- Method: PATCH
-- Route: /api/properties/:id
-- Auth: Admin required
-- Content-Type: multipart/form-data
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| GET | `/api/apartments` | Public |
+| POST | `/api/apartments` | Admin |
+| PATCH | `/api/apartments/:id` | Admin |
+| DELETE | `/api/apartments/:id` | Admin |
+| PATCH | `/api/apartments/:id/units/:unitId` | Admin |
+| DELETE | `/api/apartments/:id/units/:unitId` | Admin |
 
-### Notes
-
-- Any of the property field values may be sent for update.
-- Image files may also be sent for replacement.
-
-### Example payload
-
-```json
-{
-  "title": "Updated Title",
-  "price": 2700000,
-  "description": "Updated description"
-}
-```
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "title": "Updated Title"
-  }
-}
-```
-
-## 4) Delete a property
-
-- Method: DELETE
-- Route: /api/properties/:id
-- Auth: Admin required
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "message": "Property Deleted Successfully"
-}
-```
-
----
-
-# Apartments
-
-## 1) Get all apartments
-
-- Method: GET
-- Route: /api/apartments
-- Auth: Public
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": [
-    {
-      "id": "uuid",
-      "title": "Lakeview Apartment",
-      "description": "Modern apartment block",
-      "city": "Abuja",
-      "state": "FCT",
-      "address": "2 Maitama Street",
-      "images": [
-        { "id": "uuid", "image_url": "https://..." }
-      ],
-      "units": [
-        {
-          "id": "uuid",
-          "price": 230000,
-          "bedroom": 2,
-          "bathroom": 2,
-          "availability": "available",
-          "images": [
-            { "id": "uuid", "image_url": "https://..." }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-## 2) Create an apartment
-
-- Method: POST
-- Route: /api/apartments
-- Auth: Admin required
-- Content-Type: multipart/form-data
-
-### Required fields
-
-- title: string
-- description: string
-- city: string
-- state: string
-- address: string
-- units: JSON string array, for example:
+Create an apartment with `multipart/form-data`: parent details (`title`, `description`, `city`, `state`, and `address`), optional `features` JSON, a stringified `units` JSON array, optional `image` files, and optional `unitImages[clientUnitId]` files. Each unit also includes an `imageField` value matching its upload field.
 
 ```json
 [
   {
-    "clientUnitId": "uuid",
-    "imageField": "unitImages[uuid]",
+    "clientUnitId": "unit-1",
+    "imageField": "unitImages[unit-1]",
     "unitNumber": "A1",
     "bedrooms": 2,
     "bathrooms": 2,
-    "price": 250000
-  }
-]
-```
-
-- image: apartment-level images
-- unitImages[clientUnitId]: unit images keyed by the matching clientUnitId
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "message": "Apartment created successfully",
-  "data": {
-    "apartment": {
-      "id": "uuid"
-    }
-  }
-}
-```
-
-## 3) Update an apartment
-
-- Method: PATCH
-- Route: /api/apartments/:id
-- Auth: Admin required
-- Content-Type: multipart/form-data
-
-### Allowed updates
-
-- title
-- description
-- city
-- state
-- address
-- apartment-level images
-
-### Example payload
-
-```json
-{
-  "title": "Updated Apartment Name",
-  "city": "Kaduna"
-}
-```
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "title": "Updated Apartment Name"
-  }
-}
-```
-
-## 4) Delete an apartment
-
-- Method: DELETE
-- Route: /api/apartments/:id
-- Auth: Admin required
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "message": "Apartment deleted successfully"
-}
-```
-
-## 5) Update an apartment unit
-
-- Method: PATCH
-- Route: /api/apartments/:id/units/:unitId
-- Auth: Admin required
-- Content-Type: multipart/form-data
-
-### Allowed updates
-
-- unit_name
-- price
-- bedroom
-- bathroom
-- availability
-- unit images
-
-### Example payload
-
-```json
-{
-  "price": 260000,
-  "bedroom": 3,
-  "bathroom": 2,
-  "availability": "available"
-}
-```
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "price": 260000
-  }
-}
-```
-
-## 6) Delete an apartment unit
-
-- Method: DELETE
-- Route: /api/apartments/:id/units/:unitId
-- Auth: Admin required
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "message": "Apartment unit deleted successfully"
-}
-```
-
----
-
-# Shortlets
-
-## 1) Get all shortlets
-
-- Method: GET
-- Route: /api/shortlets
-- Auth: Public
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": [
-    {
-      "id": "uuid",
-      "city": "Ibadan",
-      "state": "Oyo",
-      "address": "14 Ring Road",
-      "images": [
-        { "id": "uuid", "image_url": "https://..." }
-      ],
-      "units": [
-        {
-          "id": "uuid",
-          "price_per_night": 25000,
-          "bedroom": 1,
-          "bathroom": 1,
-          "availability": "available",
-          "images": [
-            { "id": "uuid", "image_url": "https://..." }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-## 2) Get one shortlet
-
-- Method: GET
-- Route: /api/shortlets/:id
-- Auth: Public
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "city": "Ibadan",
-    "state": "Oyo",
-    "address": "14 Ring Road"
-  }
-}
-```
-
-## 3) Create a shortlet
-
-- Method: POST
-- Route: /api/shortlets
-- Auth: Admin required
-- Content-Type: multipart/form-data
-
-### Required fields
-
-- city: string
-- state: string
-- address: string
-- units: JSON string array, for example:
-
-```json
-[
-  {
-    "clientUnitId": "uuid",
-    "imageField": "unitImages[uuid]",
-    "price": 25000,
-    "bedrooms": 1,
-    "bathrooms": 1,
+    "price": 250000,
     "availability": "available"
   }
 ]
 ```
 
-- image: shortlet-level images
-- unitImages[clientUnitId]: unit images keyed by the matching clientUnitId
+### Shortlets
 
-### Response example
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| GET | `/api/shortlets` | Public |
+| POST | `/api/shortlets` | Admin |
+| GET | `/api/shortlets/:id` | Public |
+| PATCH | `/api/shortlets/:id` | Admin |
+| DELETE | `/api/shortlets/:id` | Admin |
+| GET | `/api/shortlets/:id/units` | Public |
+| POST | `/api/shortlets/:id/units` | Admin |
+| PATCH | `/api/shortlets/:id/units/:unitId` | Admin |
+| DELETE | `/api/shortlets/:id/units/:unitId` | Admin |
+
+Shortlet creation uses `multipart/form-data` and requires `title`, `city`, `state`, `address`, and a stringified `units` array. It also accepts optional `features` JSON. Each initial unit needs a UUID `clientUnitId`, `imageField`, `title`, `price`, `bedrooms`, `bathrooms`, and `availability`; use `image` for shortlet images and `unitImages[clientUnitId]` for unit images. Creating a unit later uses JSON with `title`, `price_per_night`, `bedroom`, `bathroom`, and `availability`. A unit title may also be changed with `PATCH /api/shortlets/:id/units/:unitId`.
+
+### Bookings and stays
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| POST | `/api/bookings` | Session |
+| GET | `/api/bookings?page=1&limit=20` | Admin |
+| PATCH | `/api/bookings/accept/:id` | Admin |
+| PATCH | `/api/bookings/reject/:id` | Admin |
+| GET | `/api/stays?page=1&limit=20` | Admin |
+
+Booking requests require a shortlet unit, guest details, date range, and amount:
+
+```json
+{
+  "shortlet_unit_id": "00000000-0000-0000-0000-000000000000",
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "notes": "Late arrival",
+  "checkIn": "2026-10-01T14:00:00.000Z",
+  "checkOut": "2026-10-05T11:00:00.000Z",
+  "amount": 120000
+}
+```
+
+`checkOut` must follow `checkIn`. Pending booking requests may overlap. A request or acceptance that overlaps an already confirmed booking for the same unit returns `409 Conflict`. Booking and stay lists use `page` (starting at 1) and `limit` (1-100).
+
+### Viewings
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| POST | `/api/viewings` | Session |
+| GET | `/api/viewings?limit=10&offset=0` | Admin |
+| POST | `/api/viewings/:id/accept` | Admin |
+| POST | `/api/viewings/:id/reject` | Admin |
+
+Create a viewing with `property_id`, a future ISO `preferred_date`, `email`, and optional `booking_notes`. Viewing lists accept `limit` (1-50) and a non-negative `offset`.
+
+### Tenants and tenancies
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| GET | `/api/tenants?limit=10&offset=0` | Admin |
+| POST | `/api/tenants` | Admin |
+| POST | `/api/tenants/assign/:apartmentUnitId` | Admin |
+| GET | `/api/tenancies` | Admin |
+| POST | `/api/tenancies` | Admin |
+| GET | `/api/tenancies/:id` | Admin |
+| PATCH | `/api/tenancies/:id` | Admin |
+| DELETE | `/api/tenancies/:id` | Admin |
+| GET | `/api/admin/tenants` | Admin |
+| POST | `/api/admin/tenants` | Admin |
+| PATCH | `/api/admin/tenants/:id` | Admin |
+| DELETE | `/api/admin/tenants/:id` | Admin |
+| POST | `/api/admin/assign-tenant/:id` | Admin |
+
+To assign a tenant to a particular apartment unit, send this JSON to `/api/tenants/assign/:apartmentUnitId`:
+
+```json
+{
+  "tenantId": "00000000-0000-0000-0000-000000000000",
+  "apartmentId": "00000000-0000-0000-0000-000000000000",
+  "move_in": "2026-10-01T00:00:00.000Z",
+  "move_out": "2027-09-30T00:00:00.000Z"
+}
+```
+
+The API rejects conflicting tenancy dates with `409 Conflict`.
+
+`GET /api/tenancies` returns the apartment title, apartment-unit title, tenant name and email, and tenancy move-in and move-out dates. Results are ordered by newest tenancy first. `GET /api/tenancies/:id` returns the stored tenancy record.
+
+Create a tenancy with `POST /api/tenancies`, or update one with `PATCH /api/tenancies/:id`. Both endpoints accept JSON fields `apartment_id`, `apartment_unit_id`, `tenant_id`, `move_in`, and `move_out`; all fields are required for create and optional for update. The unit must belong to the selected apartment, `move_out` must be after `move_in`, and date conflicts for the same unit return `409 Conflict`. Delete a tenancy with `DELETE /api/tenancies/:id`.
+
+## Responses and errors
+
+Successful requests generally return JSON in this shape:
 
 ```json
 {
   "status": "success",
-  "message": "Shortlet created successfully",
-  "data": {
-    "shortlet": {
-      "id": "uuid"
-    }
-  }
+  "data": {}
 }
 ```
 
-## 4) Update a shortlet
+Validation and application errors generally include a `status` and `message`. The API also returns an `x-request-id` header, which is useful when tracing a request in server logs.
 
-- Method: PATCH
-- Route: /api/shortlets/:id
-- Auth: Admin required
+## Project layout
 
-### Allowed updates
-
-- city
-- state
-- address
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "city": "Ibadan"
-  }
-}
+```text
+Controllers/  Request handlers and validation
+Models/       PostgreSQL queries and data access
+Routers/      Express route definitions
+Services/     Logging and email services
+upload/       Local upload-related assets
+app.js        Express application and middleware
+server.js     Database check and HTTP server startup
 ```
 
-## 5) Delete a shortlet
+## License
 
-- Method: DELETE
-- Route: /api/shortlets/:id
-- Auth: Admin required
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "message": "Shortlet deleted successfully"
-}
-```
-
-## 6) Get a shortlet’s units
-
-- Method: GET
-- Route: /api/shortlets/:id/units
-- Auth: Public
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": [
-    {
-      "id": "uuid",
-      "price_per_night": 25000,
-      "bedroom": 1,
-      "bathroom": 1,
-      "availability": "available"
-    }
-  ]
-}
-```
-
-## 7) Create a shortlet unit
-
-- Method: POST
-- Route: /api/shortlets/:id/units
-- Auth: Admin required
-
-### Example payload
-
-```json
-{
-  "price_per_night": 30000,
-  "bedroom": 2,
-  "bathroom": 2,
-  "availability": "available"
-}
-```
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "price_per_night": 30000
-  }
-}
-```
-
-## 8) Update a shortlet unit
-
-- Method: PATCH
-- Route: /api/shortlets/:id/units/:unitId
-- Auth: Admin required
-
-### Allowed updates
-
-- price_per_night
-- bedroom
-- bathroom
-- availability
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "price_per_night": 32000
-  }
-}
-```
-
-## 9) Delete a shortlet unit
-
-- Method: DELETE
-- Route: /api/shortlets/:id/units/:unitId
-- Auth: Admin required
-
-### Response example
-
-```json
-{
-  "status": "success",
-  "message": "Unit deleted successfully"
-}
-```
-
----
-
-# Notes
-
-- Property uploads use a multipart field called image.
-- Apartment and shortlet creation support both parent-level and per-unit images.
-- Parent-level images are stored under folders such as property-images/<id>, apartment-images/<id>, or shortlet-images/<id>.
-- Unit images are stored under folders such as unit-images/<apartmentId>/<unitId> or shortlet-unit-images/<shortletId>/<unitId>.
-- Validation is strict and failed input typically returns HTTP 400 with a detailed validation message.
+ISC

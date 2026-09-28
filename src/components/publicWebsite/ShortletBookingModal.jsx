@@ -1,7 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import propertyImage from './../../assets/boscohamprop3.jpg';
+import { createBooking, getCurrentUser, openWhatsAppMessage } from '../../services/propertyApi';
+
+const MINIMUM_STAY_DATE = new Date().toISOString().slice(0, 10);
 
 export default function ShortletBookingModal({ property, onClose }) {
+    const [submissionState, setSubmissionState] = useState({ status: 'idle', message: '' });
+
     useEffect(() => {
         if (!property) return undefined;
 
@@ -20,6 +26,60 @@ export default function ShortletBookingModal({ property, onClose }) {
 
     if (!property) return null;
 
+    async function handleSubmit(event) {
+        event.preventDefault();
+        const formElement = event.currentTarget;
+        const form = new FormData(formElement);
+        const checkIn = form.get('checkIn');
+        const checkOut = form.get('checkOut');
+        const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / 86400000);
+        const amount = property.amount * nights;
+        const unitId = property.unitId || property.unit_id;
+
+        if (nights < 1) {
+            setSubmissionState({ status: 'error', message: 'Check-out must be after check-in.' });
+            return;
+        }
+
+        if (!unitId) {
+            setSubmissionState({ status: 'error', message: 'This shortlet does not currently have a bookable unit.' });
+            return;
+        }
+
+        setSubmissionState({ status: 'submitting', message: 'Sending your booking request...' });
+
+        try {
+            const user = await getCurrentUser();
+            if (!user) {
+                setSubmissionState({ status: 'auth-required', message: 'Please sign up or log in before making a booking.' });
+                return;
+            }
+            await createBooking({
+                resourceId: unitId,
+                name: form.get('name'),
+                notes: `Email: ${form.get('email')}. Guests: ${form.get('guests')}. ${form.get('notes') || ''}`.trim(),
+                checkIn,
+                checkOut,
+                amount,
+            });
+            openWhatsAppMessage([
+                'New shortlet booking request',
+                `Property: ${property.title}`,
+                `Location: ${property.location}`,
+                `Name: ${form.get('name')}`,
+                `Email: ${form.get('email')}`,
+                `Check-in: ${checkIn}`,
+                `Check-out: ${checkOut}`,
+                `Guests: ${form.get('guests')}`,
+                `Amount: N${amount.toLocaleString()}`,
+            ].join('\n'));
+            setSubmissionState({ status: 'success', message: 'Your booking request has been sent. We will confirm availability shortly.' });
+            formElement.reset();
+        } catch (error) {
+            setSubmissionState({ status: 'error', message: error.message });
+        }
+    }
+
     return (
         <div className="property-modal" role="dialog" aria-modal="true" aria-labelledby="shortlet-modal-title">
             <button className="property-modal-backdrop" type="button" aria-label="Close booking form" onClick={onClose} />
@@ -30,14 +90,21 @@ export default function ShortletBookingModal({ property, onClose }) {
                     <p className="property-modal-location">{property.location}</p>
                     <img className="property-modal-image" src={property.image || propertyImage} alt={property.title} />
                     <h2 id="shortlet-modal-title">{property.title}</h2>
-                    <div className="property-modal-features">
-                        <span>{property.beds} beds</span>
-                        <span>{property.baths} baths</span>
-                    </div>
+                    {(property.beds !== null && property.beds !== undefined) || (property.baths !== null && property.baths !== undefined) ? (
+                        <div className="property-modal-features">
+                            {property.beds !== null && property.beds !== undefined && <span>{property.beds} beds</span>}
+                            {property.baths !== null && property.baths !== undefined && <span>{property.baths} baths</span>}
+                        </div>
+                    ) : null}
+                    {property.features?.length > 0 && (
+                        <ul className="property-modal-amenities" aria-label="Amenities">
+                            {property.features.map((feature) => <li key={feature}>{feature}</li>)}
+                        </ul>
+                    )}
                     <p className="property-modal-description">{property.description}</p>
                     <strong className="property-modal-price">{property.price}</strong>
                 </div>
-                <form className="viewing-form" onSubmit={(event) => event.preventDefault()}>
+                <form className="viewing-form" onSubmit={handleSubmit}>
                     <p className="viewing-form-eyebrow">Reserve your stay</p>
                     <h3>Book this shortlet</h3>
                     <p className="viewing-form-intro">Share your stay details and our team will confirm availability with you.</p>
@@ -46,12 +113,24 @@ export default function ShortletBookingModal({ property, onClose }) {
                     <label htmlFor="booking-email">Email address</label>
                     <input id="booking-email" name="email" type="email" placeholder="you@example.com" required />
                     <label htmlFor="booking-check-in">Check-in date</label>
-                    <input id="booking-check-in" name="checkIn" type="date" required />
+                    <input id="booking-check-in" name="checkIn" type="date" min={MINIMUM_STAY_DATE} required />
                     <label htmlFor="booking-check-out">Check-out date</label>
-                    <input id="booking-check-out" name="checkOut" type="date" required />
+                    <input id="booking-check-out" name="checkOut" type="date" min={MINIMUM_STAY_DATE} required />
                     <label htmlFor="booking-guests">Number of guests</label>
                     <input id="booking-guests" name="guests" type="number" min="1" placeholder="2" required />
-                    <button className="viewing-submit" type="submit">Request booking</button>
+                    <label htmlFor="booking-notes">Booking notes</label>
+                    <textarea id="booking-notes" name="notes" rows="3" placeholder="Late arrival or other details" />
+                    {submissionState.status !== 'idle' && (
+                        <p className={`form-status form-status-${submissionState.status}`} role={submissionState.status === 'error' ? 'alert' : 'status'}>
+                            {submissionState.message}
+                        </p>
+                    )}
+                    {submissionState.status === 'auth-required' && (
+                        <p className="form-status-auth-links"><Link to="/signup">Sign up</Link> or <Link to="/login">log in</Link> to continue.</p>
+                    )}
+                    <button className="viewing-submit" type="submit" disabled={submissionState.status === 'submitting'}>
+                        {submissionState.status === 'submitting' ? 'Sending...' : 'Request booking'}
+                    </button>
                 </form>
             </div>
         </div>

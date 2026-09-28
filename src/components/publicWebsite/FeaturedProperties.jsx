@@ -15,10 +15,8 @@ export default function FeaturedProperties(){
             try{
                 const data = await fetchProperties()
                 setProperties(data.map(normalizeProperty))
-                console.log(data)
                 setIsLoading(false)
             }catch(error){
-                console.error(error)
                 setIsLoading(false)
             }
         }

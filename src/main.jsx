@@ -7,6 +7,7 @@ import NotFound from './components/publicWebsite/NotFound.jsx'
 import ForSaleCategory from './components/publicWebsite/ForSaleCategory.jsx'
 import ForShortletCategory from './components/publicWebsite/ForShortletCategory.jsx'
 import ForApartmentCategory from './components/publicWebsite/ForApartmentCategory.jsx'
+import AuthPage from './components/publicWebsite/AuthPage.jsx'
 
 const router = createBrowserRouter([
   {
@@ -25,6 +26,14 @@ const router = createBrowserRouter([
   {
     path: "/apartments",
     element: <ForApartmentCategory />,
+  },
+  {
+    path: "/signup",
+    element: <AuthPage mode="signup" />,
+  },
+  {
+    path: "/login",
+    element: <AuthPage mode="login" />,
   },
   {
     path:"*",

@@ -95,7 +95,6 @@ body {
   border-radius: 16px;
   background-color: var(--card-background);
   cursor: pointer;
-
 }
 @media (max-width: 900px){
   .for-sale-properties ul{

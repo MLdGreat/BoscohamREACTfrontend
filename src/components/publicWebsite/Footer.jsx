@@ -25,7 +25,7 @@ export default function Footer() {
             <h4>Contact</h4>
             <ul className="contacts">
                 <li className="contact">info@boscoham.ng</li>
-                <li className="contact">+2348002672426</li>
+                <li className="contact">+2347049109862</li>
                 <li className="contact">
                     <p>Lagos<span>.</span>Abuja</p>
                 </li>

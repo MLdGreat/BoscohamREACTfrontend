@@ -1,6 +1,6 @@
 import propertyImage from './../../assets/boscohamprop3.jpg';
 
-export default function PropertyCard({ category, location, title, beds, baths, price, image, onViewDetails }) {
+export default function PropertyCard({ category, location, title, beds, baths, features = [], price, image, onViewDetails }) {
     return(
         <>
         <div className="property-card">
@@ -17,14 +17,21 @@ export default function PropertyCard({ category, location, title, beds, baths, p
                 <h3 className="property-title">
                     {title}
                 </h3>
-                <div className="property-features">
-                    <span className="property-feature">
-                        {beds} beds
-                    </span>
-                    <span className="property-feature">
-                        {baths} baths
-                    </span>
-                </div>
+                {(beds !== null && beds !== undefined) || (baths !== null && baths !== undefined) ? (
+                    <div className="property-features">
+                        {beds !== null && beds !== undefined && (
+                            <span className="property-feature">{beds} beds</span>
+                        )}
+                        {baths !== null && baths !== undefined && (
+                            <span className="property-feature">{baths} baths</span>
+                        )}
+                    </div>
+                ) : null}
+                {features.length > 0 && (
+                    <ul className="property-amenities" aria-label="Amenities">
+                        {features.map((feature) => <li key={feature}>{feature}</li>)}
+                    </ul>
+                )}
                 <div className="property-prices">
                     <p className="property-price">
                         {price}
