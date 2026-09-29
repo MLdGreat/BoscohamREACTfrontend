@@ -43,8 +43,8 @@ async function requestCollection(endpoint, resourceName) {
 function getImageUrl(images) {
     if (typeof images === 'string') return images;
     if (!Array.isArray(images)) return undefined;
-    const image = images.find((item) => item?.image_url || item?.url || typeof item === 'string');
-    return typeof image === 'string' ? image : image?.image_url || image?.url;
+    const image = images.find((item) => item?.image || item?.image_url || item?.url || typeof item === 'string');
+    return typeof image === 'string' ? image : image?.image || image?.image_url || image?.url;
 }
 
 function formatLocation(...parts) {
