@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.DEV
     ? '/api'
-    : 'https://boscoham.onrender.com/api';
+    : 'https://api.boscoham.homes/api';
 const WHATSAPP_NUMBER = '2347049109862';
 
 async function requestJson(endpoint, options, resourceName) {
