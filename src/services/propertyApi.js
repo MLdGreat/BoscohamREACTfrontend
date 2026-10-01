@@ -1,15 +1,18 @@
+import { withIdempotencyHeader } from './idempotency.js';
+
 const API_BASE_URL = import.meta.env.DEV
     ? '/api'
     : 'https://api.boscoham.homes/api';
 const WHATSAPP_NUMBER = '2347049109862';
 
 async function requestJson(endpoint, options, resourceName) {
+    const requestOptions = withIdempotencyHeader(endpoint, options, options?.body);
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
+        ...requestOptions,
         credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
-            ...options?.headers,
+            ...(requestOptions?.headers || {}),
         },
     });
     const payload = await response.json().catch(() => ({}));

@@ -102,6 +102,22 @@ Example signup payload:
 
 `UUID` path parameters below must be valid UUIDs.
 
+### Idempotency
+
+Duplicate-prone create requests require an `Idempotency-Key` header. Generate a unique key for each logical operation, then reuse that same key unchanged when retrying after a timeout or lost response. Keys are scoped to the authenticated user, HTTP method, and concrete endpoint path, and are retained in Redis for 24 hours. Request bodies and uploaded file contents are fingerprinted; reuse of a key with a different request is rejected.
+
+Idempotency is enabled for `POST /api/properties`, `POST /api/apartments`, `POST /api/shortlets`, `POST /api/shortlets/:id/units`, `POST /api/bookings`, `POST /api/viewings`, `POST /api/tenants`, `POST /api/tenants/assign/:apartmentUnitId`, `POST /api/tenancies`, `POST /api/admin/tenants`, and `POST /api/admin/assign-tenant/:id`.
+
+Example:
+
+```http
+POST /api/viewings
+Idempotency-Key: 8c2f87f6-2940-4fd8-af64-8a1f231d351c
+Content-Type: application/json
+```
+
+The first successful request creates the resource. A retry with the same key and request receives the original status and JSON response with `Idempotency-Replayed: true`. Requests with no valid key receive `400`; reusing a key for a different request receives `422`; a concurrent retry while the first request is still processing receives `409` and can be retried with the same key. Redis must be available for these endpoints.
+
 ### Properties
 
 | Method | Endpoint | Access |
@@ -286,3 +302,4 @@ server.js     Database check and HTTP server startup
 ## License
 
 ISC
+
