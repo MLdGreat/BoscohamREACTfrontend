@@ -335,7 +335,7 @@ Example payload:
 | POST | `/api/viewings/:id/accept` | Admin |
 | POST | `/api/viewings/:id/reject` | Admin |
 
-Create a viewing for a property or apartment by sending `property_id`. The ID must identify the listing being viewed.
+Create a viewing for a property or apartment by sending `property_id`. For apartment-unit viewings, use the selected unit's ID, not its parent apartment ID.
 
 Property payload:
 

@@ -43,9 +43,17 @@ export default function FeaturedPropertyModal({ property, onClose }){
                 });
                 return;
             }
+            const viewingResourceType = property.viewingResourceType || 'property';
+            const viewingResourceId = viewingResourceType === 'apartment'
+                ? property.viewingResourceId
+                : property.viewingResourceId || property.listingId || property.id;
+            if (!viewingResourceId) {
+                setSubmissionState({ status: "error", message: "This apartment unit does not have a valid viewing ID." });
+                return;
+            }
             await createViewing({
-                resourceId: property.viewingResourceId || property.listingId || property.id,
-                resourceType: property.viewingResourceType || 'property',
+                resourceId: viewingResourceId,
+                resourceType: viewingResourceType,
                 email: form.get("email"),
                 preferredDate: form.get("preferred_date"),
                 bookingNotes: form.get("booking_notes"),

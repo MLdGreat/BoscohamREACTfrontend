@@ -357,7 +357,9 @@ function normalizeUnits(listing, category, priceKey, titleFallback) {
         ...unit,
         listingId: listing.id,
         unitId: unit.id || unit.unit_id || unit.unitId,
-        viewingResourceId: listing.id,
+        viewingResourceId: category === 'Apartment'
+            ? unit.id || unit.unit_id || unit.unitId
+            : listing.id,
         viewingResourceType: category === 'Apartment' ? 'apartment' : 'property',
         features: normalizeFeatures(listing.features),
         category,
