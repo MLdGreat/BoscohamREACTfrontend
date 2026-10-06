@@ -265,8 +265,6 @@ export function createBooking({ resourceId, name, notes, checkIn, checkOut, amou
             ...(notes?.trim() ? { notes: notes.trim() } : {}),
             checkIn,
             checkOut,
-            check_in: checkIn,
-            check_out: checkOut,
             amount,
         }),
     }, 'booking request');
