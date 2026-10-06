@@ -263,6 +263,8 @@ export function createBooking({ resourceId, name, notes, checkIn, checkOut, amou
             first_name: nameParts.shift() || name,
             last_name: nameParts.join(' ') || name,
             ...(notes?.trim() ? { notes: notes.trim() } : {}),
+            checkIn,
+            checkOut,
             check_in: checkIn,
             check_out: checkOut,
             amount,
