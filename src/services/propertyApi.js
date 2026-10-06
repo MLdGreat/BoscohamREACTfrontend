@@ -312,7 +312,7 @@ export function createViewing({ resourceId, resourceType = 'property', email, pr
     return requestJson('/viewings', {
         method: 'POST',
         body: JSON.stringify({
-            [resourceType === 'apartment' ? 'apartment_unit_id' : 'property_id']: resourceId,
+            property_id: resourceId,
             email,
             preferred_date: `${preferredDate}T10:00:00.000Z`,
             ...(bookingNotes?.trim() ? { booking_notes: bookingNotes.trim() } : {}),
@@ -357,9 +357,7 @@ function normalizeUnits(listing, category, priceKey, titleFallback) {
         ...unit,
         listingId: listing.id,
         unitId: unit.id || unit.unit_id || unit.unitId,
-        viewingResourceId: category === 'Apartment'
-            ? unit.id || unit.unit_id || unit.unitId
-            : listing.id,
+        viewingResourceId: listing.id,
         viewingResourceType: category === 'Apartment' ? 'apartment' : 'property',
         features: normalizeFeatures(listing.features),
         category,

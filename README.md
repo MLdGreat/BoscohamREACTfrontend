@@ -335,7 +335,7 @@ Example payload:
 | POST | `/api/viewings/:id/accept` | Admin |
 | POST | `/api/viewings/:id/reject` | Admin |
 
-Create a viewing for a property by sending `property_id`, or for an apartment by sending `apartment_unit_id`. Send exactly one of these fields; the ID must identify an existing property or apartment unit.
+Create a viewing for a property or apartment by sending `property_id`. The ID must identify the listing being viewed.
 
 Property payload:
 
@@ -352,7 +352,7 @@ Apartment payload:
 
 ```json
 {
-  "apartment_unit_id": "00000000-0000-0000-0000-000000000000",
+  "property_id": "00000000-0000-0000-0000-000000000000",
   "preferred_date": "2026-10-10T15:00:00.000Z",
   "email": "client@example.com",
   "booking_notes": "Please show the available units"
