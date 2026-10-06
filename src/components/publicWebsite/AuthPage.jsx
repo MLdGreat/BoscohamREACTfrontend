@@ -52,7 +52,7 @@ export default function AuthPage({ mode }) {
                 </div>
                 <h1 id="auth-title">{isSignup ? 'Start your next chapter.' : 'Good to see you again.'}</h1>
                 <p className="auth-intro">
-                    {isSignup ? 'Create an account to request viewings and book shortlets.' : 'Log in to request a viewing or complete a shortlet booking.'}
+                    {isSignup ? 'Create an account to request property viewings.' : 'Log in to request a property viewing.'}
                 </p>
                 <form className="viewing-form" onSubmit={handleSubmit}>
                     {isSignup && (

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import propertyImage from './../../assets/boscohamprop3.jpg';
 import { createBooking, openWhatsAppMessage } from '../../services/propertyApi';
 
@@ -119,9 +118,6 @@ export default function ShortletBookingModal({ property, onClose }) {
                         <p className={`form-status form-status-${submissionState.status}`} role={submissionState.status === 'error' ? 'alert' : 'status'}>
                             {submissionState.message}
                         </p>
-                    )}
-                    {submissionState.status === 'auth-required' && (
-                        <p className="form-status-auth-links"><Link to="/signup">Sign up</Link> or <Link to="/login">log in</Link> to continue.</p>
                     )}
                     <button className="viewing-submit" type="submit" disabled={submissionState.status === 'submitting'}>
                         {submissionState.status === 'submitting' ? 'Sending...' : 'Request booking'}
