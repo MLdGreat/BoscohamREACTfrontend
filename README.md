@@ -330,12 +330,14 @@ Example payload:
 
 | Method | Endpoint | Access |
 | --- | --- | --- |
-| POST | `/api/viewings` | Session |
+| POST | `/api/viewings` | Session + `Idempotency-Key` |
 | GET | `/api/viewings` | Admin |
 | POST | `/api/viewings/:id/accept` | Admin |
 | POST | `/api/viewings/:id/reject` | Admin |
 
-Example payload:
+Create a viewing for a property by sending `property_id`, or for an apartment by sending `apartment_unit_id`. Send exactly one of these fields; the ID must identify an existing property or apartment unit.
+
+Property payload:
 
 ```json
 {
@@ -345,6 +347,21 @@ Example payload:
   "booking_notes": "Please show the rooftop access"
 }
 ```
+
+Apartment payload:
+
+```json
+{
+  "apartment_unit_id": "00000000-0000-0000-0000-000000000000",
+  "preferred_date": "2026-10-10T15:00:00.000Z",
+  "email": "client@example.com",
+  "booking_notes": "Please show the available units"
+}
+```
+
+Both payloads require `preferred_date` to be a future ISO date and `email` to be valid. Include the logged-in session cookie (`credentials: 'include'`) and a unique `Idempotency-Key` header. The endpoint responds with `201` and the created viewing; invalid IDs or a missing listing return `400` or `404` respectively. Admin viewing results include `listing_type` (`property` or `apartment`) and use `title` and `address` for the associated listing.
+
+Before deploying this feature, apply [`migrations/20261006_add_apartment_viewings.sql`](migrations/20261006_add_apartment_viewings.sql) to add the nullable apartment relationship and enforce that each viewing references at most one listing.
 
 ## Idempotency
 

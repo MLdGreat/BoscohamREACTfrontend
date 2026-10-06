@@ -45,6 +45,7 @@ export default function FeaturedPropertyModal({ property, onClose }){
             }
             await createViewing({
                 resourceId: property.viewingResourceId || property.listingId || property.id,
+                resourceType: property.viewingResourceType || 'property',
                 email: form.get("email"),
                 preferredDate: form.get("preferred_date"),
                 bookingNotes: form.get("booking_notes"),

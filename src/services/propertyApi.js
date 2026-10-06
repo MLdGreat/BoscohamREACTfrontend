@@ -308,11 +308,11 @@ export function fetchViewings() {
     return requestCollection('/viewings', 'viewings');
 }
 
-export function createViewing({ resourceId, email, preferredDate, bookingNotes }) {
+export function createViewing({ resourceId, resourceType = 'property', email, preferredDate, bookingNotes }) {
     return requestJson('/viewings', {
         method: 'POST',
         body: JSON.stringify({
-            property_id: resourceId,
+            [resourceType === 'apartment' ? 'apartment_unit_id' : 'property_id']: resourceId,
             email,
             preferred_date: `${preferredDate}T10:00:00.000Z`,
             ...(bookingNotes?.trim() ? { booking_notes: bookingNotes.trim() } : {}),
@@ -357,7 +357,10 @@ function normalizeUnits(listing, category, priceKey, titleFallback) {
         ...unit,
         listingId: listing.id,
         unitId: unit.id || unit.unit_id || unit.unitId,
-        viewingResourceId: listing.id,
+        viewingResourceId: category === 'Apartment'
+            ? unit.id || unit.unit_id || unit.unitId
+            : listing.id,
+        viewingResourceType: category === 'Apartment' ? 'apartment' : 'property',
         features: normalizeFeatures(listing.features),
         category,
         location: formatLocation(listing.address, listing.city, listing.state),
