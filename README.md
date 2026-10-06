@@ -1,37 +1,28 @@
 # Boscoham Properties Platform
 
-Boscoham Properties Platform is an Express API for managing property listings, apartments and long-term tenancies, shortlets and bookings, tenant records, and property-viewing requests.
+Boscoham Properties Platform is a property-management API for listings, apartments, shortlets, bookings, tenancies, tenants, and viewing requests.
 
-It uses PostgreSQL for application data, Redis-backed Express sessions for authentication, Supabase Storage for images, and Resend for password-reset email.
+This project is designed to be used by a frontend app that speaks JSON for app data and uses browser cookies for authenticated sessions. The server is built with Express, PostgreSQL, Redis, Supabase Storage, and Resend.
 
-## Features
+## Product overview
 
-- Session-based user signup, login, logout, and password reset
-- Public property, apartment, and shortlet catalogues
-- Admin-managed property, apartment, shortlet, tenant, booking, stay, and viewing workflows
-- Apartment-unit tenancy assignment with overlap checks
-- Shortlet booking conflict checks for pending and confirmed bookings
-- Supabase image uploads for properties, apartments, and units
+- Public catalog for properties, apartments, and shortlets
+- Admin-only management for listings, units, tenants, bookings, and stays
+- Session-based auth for the frontend app
+- Image uploads for listing and unit photos
+- Booking and tenancy overlap checks to prevent double-booking
 
 ## Stack
 
-- Node.js and Express 5
-- PostgreSQL (`pg`)
-- Redis and `express-session`
-- Supabase Storage
-- Resend
-- Joi, bcrypt, Multer, CORS, and Helmet
-
-## Prerequisites
-
-- Node.js 18 or later
-- npm
+- Node.js
+- Express
 - PostgreSQL
 - Redis
-- A Supabase project with an `upload` storage bucket
-- A Resend API key and verified sender address
+- Supabase Storage
+- Resend
+- Joi, bcrypt, multer, helmet, cors
 
-## Setup
+## Local setup
 
 Install dependencies:
 
@@ -39,12 +30,12 @@ Install dependencies:
 npm install
 ```
 
-Create `config.env` in the project root. Do not commit this file or any real credentials.
+Create a local `config.env` file in the project root. Do not commit real credentials.
 
 ```env
 DATABASE_CONNECTION_STRING=postgresql://USER:PASSWORD@HOST:5432/DATABASE
 SESSION_SECRET_KEY=replace-with-a-long-random-secret
-REDIS_HOST=your-redis-host
+REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_USERNAME=default
 REDIS_PASSWORD=your-redis-password
@@ -52,39 +43,108 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 RESEND_API_KEY=re_your_resend_api_key
 EMAIL_FROM="Boscoham <noreply@example.com>"
-PRODUCTION_API_DOMAIN=https://api.example.com/
 NODE_ENV=development
 PORT=2000
-# Optional: a single permitted frontend origin.
 CORS_ORIGIN=http://localhost:5173
 ```
 
-Start the server:
+Start the API:
 
 ```bash
 npm start
 ```
 
-For development with automatic restarts:
+Development mode:
 
 ```bash
 npm run dev
 ```
 
-The default API URL is `http://localhost:2000`.
+Base URL:
+
+```text
+http://localhost:2000
+```
+
+## Frontend integration notes
+
+This backend is written for browser-based apps and uses cookies for authentication.
+
+When calling the API from the frontend, always do this:
+
+```js
+fetch('http://localhost:2000/api/auth/login', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'jane@example.com',
+    password: 'StrongPass1@',
+  }),
+});
+```
+
+Important rules:
+
+- Use `credentials: 'include'` for all authenticated requests.
+- The browser will store the session cookie automatically.
+- For uploads, use `FormData` instead of JSON.
+- For admin-only actions, the user must be logged in as an admin.
+
+## Response format
+
+The API generally responds with a JSON envelope like this:
+
+```json
+{
+  "status": "success",
+  "data": { ... }
+}
+```
+
+Error responses usually look like:
+
+```json
+{
+  "status": "fail",
+  "message": "Validation failed"
+}
+```
+
+Or:
+
+```json
+{
+  "status": "error",
+  "message": "Internal Server Error"
+}
+```
+
+Common HTTP status codes:
+
+- 200 OK
+- 201 Created
+- 400 Bad Request
+- 401 Unauthorized
+- 403 Forbidden
+- 404 Not Found
+- 409 Conflict
+- 500 Internal Server Error
 
 ## Authentication
 
-Authentication is cookie/session based. Send requests with credentials enabled from a browser client (for example, `credentials: 'include'` with `fetch`). A logged-in session lasts 30 minutes. Admin routes require a session belonging to an admin user.
+### Public auth routes
 
-| Method | Endpoint | Access | Purpose |
-| --- | --- | --- | --- |
-| POST | `/api/auth/signup` | Public | Create a user account |
-| POST | `/api/auth/login` | Public | Start a session |
-| POST | `/api/auth/logout` | Session | End the current session |
-| GET | `/api/auth/me` | Public | Return the authenticated user, if present |
-| POST | `/api/auth/forgot-password` | Public | Send a password-reset email |
-| POST | `/api/auth/reset-password/:token` | Public | Set a new password using a reset token |
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | `/api/auth/signup` | Create a new account |
+| POST | `/api/auth/login` | Log in and create a session |
+| POST | `/api/auth/logout` | Log out |
+| GET | `/api/auth/me` | Get the currently logged-in user |
+| POST | `/api/auth/forgot-password` | Send password reset email |
+| POST | `/api/auth/reset-password/:token` | Reset password with token |
 
 Example signup payload:
 
@@ -98,25 +158,16 @@ Example signup payload:
 }
 ```
 
-## API routes
+Example login payload:
 
-`UUID` path parameters below must be valid UUIDs.
-
-### Idempotency
-
-Duplicate-prone create requests require an `Idempotency-Key` header. Generate a unique key for each logical operation, then reuse that same key unchanged when retrying after a timeout or lost response. Keys are scoped to the authenticated user, HTTP method, and concrete endpoint path, and are retained in Redis for 24 hours. Request bodies and uploaded file contents are fingerprinted; reuse of a key with a different request is rejected.
-
-Idempotency is enabled for `POST /api/properties`, `POST /api/apartments`, `POST /api/shortlets`, `POST /api/shortlets/:id/units`, `POST /api/bookings`, `POST /api/viewings`, `POST /api/tenants`, `POST /api/tenants/assign/:apartmentUnitId`, `POST /api/tenancies`, `POST /api/admin/tenants`, and `POST /api/admin/assign-tenant/:id`.
-
-Example:
-
-```http
-POST /api/viewings
-Idempotency-Key: 8c2f87f6-2940-4fd8-af64-8a1f231d351c
-Content-Type: application/json
+```json
+{
+  "email": "jane@example.com",
+  "password": "StrongPass1@"
+}
 ```
 
-The first successful request creates the resource. A retry with the same key and request receives the original status and JSON response with `Idempotency-Replayed: true`. Requests with no valid key receive `400`; reusing a key for a different request receives `422`; a concurrent retry while the first request is still processing receives `409` and can be retried with the same key. Redis must be available for these endpoints.
+## Public catalog endpoints
 
 ### Properties
 
@@ -127,39 +178,34 @@ The first successful request creates the resource. A retry with the same key and
 | PATCH | `/api/properties/:id` | Admin |
 | DELETE | `/api/properties/:id` | Admin |
 
-Property create and update requests use `multipart/form-data`. Create requires `title`, `city`, `state`, `address`, `type`, `price`, `description`, and `highlighted`; attach up to 10 JPG, PNG, or WEBP files using the `image` field. `beds` and `baths` are optional whole-number fields from `0` to `32767` (for example, `beds: 3` and `baths: 2`). Send either field in a PATCH request to change only that value. They are returned as `beds` and `baths` by `GET /api/properties`; older listings without values return `null`. Properties, apartments, and shortlets support optional `features`: send a JSON array such as `["Swimming pool", "Tennis court"]`; send `null` in an update to clear it.
+Property create/update uses `multipart/form-data`.
 
-Example property form fields:
+Example field names for property creation:
 
 ```text
-title: Sunset Villa
-city: Lagos
-state: Lagos
-address: 12 Lekki Phase 1
-type: villa
-price: 2500000
-description: Luxury home with pool
-highlighted: yes
-beds: 4
-baths: 3
+title
+city
+state
+address
+description
+type
+price
+highlighted
+beds
+baths
+features
+image
 ```
 
-`GET /api/properties` includes the property details required for listing cards, including `beds`, `baths`, and `images`:
+`features` should be a JSON array string, for example:
 
 ```json
-{
-  "status": "success",
-  "data": [{
-    "id": "00000000-0000-0000-0000-000000000000",
-    "title": "Sunset Villa",
-    "beds": 4,
-    "baths": 3,
-    "images": [{ "image": "https://example.com/property.jpg" }]
-  }]
-}
+["Swimming pool", "Garage"]
 ```
 
-### Apartments and apartment units
+You can attach multiple files using the `image` field. The server accepts JPG, PNG, and WEBP images with a 5 MB cap per file.
+
+### Apartments
 
 | Method | Endpoint | Access |
 | --- | --- | --- |
@@ -170,13 +216,27 @@ baths: 3
 | PATCH | `/api/apartments/:id/units/:unitId` | Admin |
 | DELETE | `/api/apartments/:id/units/:unitId` | Admin |
 
-Create an apartment with `multipart/form-data`: parent details (`title`, `description`, `city`, `state`, and `address`), optional `features` JSON, a stringified `units` JSON array, optional `image` files, and optional `unitImages[clientUnitId]` files. Each unit also includes an `imageField` value matching its upload field.
+Apartment creation is a `multipart/form-data` flow. The main form fields are:
+
+```text
+title
+description
+city
+state
+address
+features
+units
+image
+unitImages[uuid]
+```
+
+The `units` value is a JSON string representing an array of unit objects like:
 
 ```json
 [
   {
-    "clientUnitId": "unit-1",
-    "imageField": "unitImages[unit-1]",
+    "clientUnitId": "a2d8d52d-57b9-49d9-b8df-6e3e2e7bc6d6",
+    "imageField": "unitImages[a2d8d52d-57b9-49d9-b8df-6e3e2e7bc6d6]",
     "unitNumber": "A1",
     "bedrooms": 2,
     "bathrooms": 2,
@@ -200,64 +260,200 @@ Create an apartment with `multipart/form-data`: parent details (`title`, `descri
 | PATCH | `/api/shortlets/:id/units/:unitId` | Admin |
 | DELETE | `/api/shortlets/:id/units/:unitId` | Admin |
 
-Shortlet creation uses `multipart/form-data` and requires `title`, `city`, `state`, `address`, and a stringified `units` array. It also accepts optional `features` JSON. Each initial unit needs a UUID `clientUnitId`, `imageField`, `title`, `price`, `bedrooms`, `bathrooms`, and `availability`; use `image` for shortlet images and `unitImages[clientUnitId]` for unit images. Creating a unit later uses JSON with `title`, `price_per_night`, `bedroom`, `bathroom`, and `availability`. A unit title may also be changed with `PATCH /api/shortlets/:id/units/:unitId`.
+Shortlet creation also uses `multipart/form-data` and expects a JSON `units` string with objects like:
 
-### Bookings and stays
+```json
+[
+  {
+    "clientUnitId": "f5b867d0-b668-4cc3-aaa5-c12bc7bcfca0",
+    "imageField": "unitImages[f5b867d0-b668-4cc3-aaa5-c12bc7bcfca0]",
+    "title": "Deluxe Studio",
+    "price": 180000,
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "availability": "available"
+  }
+]
+```
+
+## Booking and tenancy flows
+
+### Bookings
 
 | Method | Endpoint | Access |
 | --- | --- | --- |
 | POST | `/api/bookings` | Session |
-| GET | `/api/bookings?page=1&limit=20` | Admin |
+| GET | `/api/bookings` | Admin |
 | PATCH | `/api/bookings/accept/:id` | Admin |
 | PATCH | `/api/bookings/reject/:id` | Admin |
-| GET | `/api/stays?page=1&limit=20` | Admin |
 
-Booking requests require a shortlet unit, guest details, date range, and amount:
+Example payload:
 
 ```json
 {
   "shortlet_unit_id": "00000000-0000-0000-0000-000000000000",
+  "user_id": "00000000-0000-0000-0000-000000000000",
   "first_name": "Jane",
   "last_name": "Doe",
   "notes": "Late arrival",
-  "checkIn": "2026-10-01T14:00:00.000Z",
-  "checkOut": "2026-10-05T11:00:00.000Z",
+  "check_in": "2026-10-01",
+  "check_out": "2026-10-05",
   "amount": 120000
 }
 ```
 
-`checkOut` must follow `checkIn`. Pending booking requests may overlap. A request or acceptance that overlaps an already confirmed booking for the same unit returns `409 Conflict`. Booking and stay lists use `page` (starting at 1) and `limit` (1-100).
+The server prevents overlapping bookings for the same shortlet unit when the booking is pending or confirmed.
+
+### Tenancies
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| GET | `/api/tenancies` | Admin |
+| POST | `/api/tenancies` | Admin |
+| GET | `/api/tenancies/:id` | Admin |
+| PATCH | `/api/tenancies/:id` | Admin |
+| DELETE | `/api/tenancies/:id` | Admin |
+
+Example payload:
+
+```json
+{
+  "apartment_id": "00000000-0000-0000-0000-000000000000",
+  "apartment_unit_id": "00000000-0000-0000-0000-000000000000",
+  "tenant_id": "00000000-0000-0000-0000-000000000000",
+  "move_in": "2026-10-01",
+  "move_out": "2026-12-31"
+}
+```
 
 ### Viewings
 
 | Method | Endpoint | Access |
 | --- | --- | --- |
 | POST | `/api/viewings` | Session |
-| GET | `/api/viewings?limit=10&offset=0` | Admin |
+| GET | `/api/viewings` | Admin |
 | POST | `/api/viewings/:id/accept` | Admin |
 | POST | `/api/viewings/:id/reject` | Admin |
 
-Create a viewing with `property_id`, a future ISO `preferred_date`, `email`, and optional `booking_notes`. Viewing lists accept `limit` (1-50) and a non-negative `offset`.
+Example payload:
 
-### Tenants and tenancies
+```json
+{
+  "property_id": "00000000-0000-0000-0000-000000000000",
+  "preferred_date": "2026-10-10T15:00:00.000Z",
+  "email": "client@example.com",
+  "booking_notes": "Please show the rooftop access"
+}
+```
 
-| Method | Endpoint | Access |
-| --- | --- | --- |
-| GET | `/api/tenants?limit=10&offset=0` | Admin |
-| POST | `/api/tenants` | Admin |
-| POST | `/api/tenants/assign/:apartmentUnitId` | Admin |
-| GET | `/api/tenancies` | Admin |
-| POST | `/api/tenancies` | Admin |
-| GET | `/api/tenancies/:id` | Admin |
-| PATCH | `/api/tenancies/:id` | Admin |
-| DELETE | `/api/tenancies/:id` | Admin |
-| GET | `/api/admin/tenants` | Admin |
-| POST | `/api/admin/tenants` | Admin |
-| PATCH | `/api/admin/tenants/:id` | Admin |
-| DELETE | `/api/admin/tenants/:id` | Admin |
-| POST | `/api/admin/assign-tenant/:id` | Admin |
+## Idempotency
 
-To assign a tenant to a particular apartment unit, send this JSON to `/api/tenants/assign/:apartmentUnitId`:
+The API supports idempotency for duplicate-prone writes. Include a unique `Idempotency-Key` header on requests like:
+
+- `POST /api/properties`
+- `POST /api/apartments`
+- `POST /api/shortlets`
+- `POST /api/shortlets/:id/units`
+- `POST /api/bookings`
+- `POST /api/viewings`
+- `POST /api/tenancies`
+
+Example:
+
+```http
+POST /api/bookings
+Idempotency-Key: 8c2f87f6-2940-4fd8-af64-8a1f231d351c
+Content-Type: application/json
+```
+
+Retrying the same request with the same key will return the original result, while a different payload for the same key is rejected.
+
+## Quick frontend examples
+
+### Fetch current user
+
+```js
+const res = await fetch('http://localhost:2000/api/auth/me', {
+  credentials: 'include',
+});
+const data = await res.json();
+console.log(data);
+```
+
+### Upload a property
+
+```js
+const form = new FormData();
+form.append('title', 'Luxury Villa');
+form.append('city', 'Lagos');
+form.append('state', 'Lagos');
+form.append('address', '12 Lekki Phase 1');
+form.append('description', '4-bedroom villa with pool');
+form.append('type', 'villa');
+form.append('price', '2500000');
+form.append('highlighted', 'true');
+form.append('beds', '4');
+form.append('baths', '3');
+form.append('features', JSON.stringify(['Pool', 'Parking', 'Garden']));
+form.append('image', fileInput.files[0]);
+
+const res = await fetch('http://localhost:2000/api/properties', {
+  method: 'POST',
+  credentials: 'include',
+  body: form,
+});
+```
+
+### Create a booking
+
+```js
+const res = await fetch('http://localhost:2000/api/bookings', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    shortlet_unit_id: '00000000-0000-0000-0000-000000000000',
+    first_name: 'Jane',
+    last_name: 'Doe',
+    notes: 'Late arrival',
+    check_in: '2026-10-01',
+    check_out: '2026-10-05',
+    amount: 120000,
+  }),
+});
+```
+
+## Notes for frontend teams
+
+- Most listing data is returned under `data`.
+- Auth is session-based, so browser cookies must be enabled.
+- For image-heavy flows, use `FormData`.
+- For sensitive or admin-only operations, verify the user has the admin role before showing the UI.
+- Use 409 responses as a signal to show conflict messaging, such as overlap warnings or already-booked units.
+
+## Security notes
+
+- Keep `config.env` outside the repository.
+- Use a production-grade reverse proxy and HTTPS in production.
+- Keep the CORS origin restricted to the actual frontend domain.
+- Do not expose the Supabase service-role key or the database connection string to the frontend.
+
+## Useful health check
+
+```bash
+curl http://localhost:2000/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-10-06T00:00:00.000Z"
+}
+```
 
 ```json
 {
@@ -302,4 +498,3 @@ server.js     Database check and HTTP server startup
 ## License
 
 ISC
-

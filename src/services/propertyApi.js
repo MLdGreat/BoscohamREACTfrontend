@@ -5,16 +5,44 @@ const API_BASE_URL = import.meta.env.DEV
     : 'https://api.boscoham.homes/api';
 const WHATSAPP_NUMBER = '2347049109862';
 
-async function requestJson(endpoint, options, resourceName) {
-    const requestOptions = withIdempotencyHeader(endpoint, options, options?.body);
+function serializeFormData(formData) {
+    const payload = {};
+
+    for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+            payload[key] = {
+                name: value.name,
+                size: value.size,
+                type: value.type,
+                lastModified: value.lastModified,
+            };
+            continue;
+        }
+
+        payload[key] = value;
+    }
+
+    return payload;
+}
+
+async function requestJson(endpoint, options = {}, resourceName = 'request') {
+    const bodyForIdempotency = options.body instanceof FormData
+        ? serializeFormData(options.body)
+        : options.body;
+
+    const requestOptions = withIdempotencyHeader(endpoint, options, bodyForIdempotency);
+    const headers = new Headers(requestOptions.headers || {});
+
+    if (!(requestOptions.body instanceof FormData) && !headers.has('Content-Type') && requestOptions.body !== undefined) {
+        headers.set('Content-Type', 'application/json');
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...requestOptions,
         credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(requestOptions?.headers || {}),
-        },
+        headers,
     });
+
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok || payload.status === 'fail') {
@@ -76,16 +104,101 @@ function normalizeFeatures(features) {
     return [];
 }
 
+export async function healthCheck() {
+    return requestJson('/health', { method: 'GET' }, 'health check');
+}
+
 export function fetchProperties() {
     return requestCollection('/properties', 'properties');
+}
+
+export function fetchPropertyById(propertyId) {
+    return requestJson(`/properties/${propertyId}`, { method: 'GET' }, 'property');
+}
+
+export function createProperty(formData) {
+    return requestJson('/properties', { method: 'POST', body: formData }, 'create property');
+}
+
+export function updateProperty(propertyId, formData) {
+    return requestJson(`/properties/${propertyId}`, { method: 'PATCH', body: formData }, 'update property');
+}
+
+export function deleteProperty(propertyId) {
+    return requestJson(`/properties/${propertyId}`, { method: 'DELETE' }, 'delete property');
 }
 
 export function fetchApartments() {
     return requestCollection('/apartments', 'apartments');
 }
 
+export function fetchApartmentById(apartmentId) {
+    return requestJson(`/apartments/${apartmentId}`, { method: 'GET' }, 'apartment');
+}
+
+export function createApartment(formData) {
+    return requestJson('/apartments', { method: 'POST', body: formData }, 'create apartment');
+}
+
+export function updateApartment(apartmentId, formData) {
+    return requestJson(`/apartments/${apartmentId}`, { method: 'PATCH', body: formData }, 'update apartment');
+}
+
+export function deleteApartment(apartmentId) {
+    return requestJson(`/apartments/${apartmentId}`, { method: 'DELETE' }, 'delete apartment');
+}
+
+export function updateApartmentUnit(apartmentId, unitId, payload) {
+    return requestJson(`/apartments/${apartmentId}/units/${unitId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+    }, 'update apartment unit');
+}
+
+export function deleteApartmentUnit(apartmentId, unitId) {
+    return requestJson(`/apartments/${apartmentId}/units/${unitId}`, { method: 'DELETE' }, 'delete apartment unit');
+}
+
 export function fetchShortlets() {
     return requestCollection('/shortlets', 'shortlets');
+}
+
+export function fetchShortletById(shortletId) {
+    return requestJson(`/shortlets/${shortletId}`, { method: 'GET' }, 'shortlet');
+}
+
+export function createShortlet(formData) {
+    return requestJson('/shortlets', { method: 'POST', body: formData }, 'create shortlet');
+}
+
+export function updateShortlet(shortletId, formData) {
+    return requestJson(`/shortlets/${shortletId}`, { method: 'PATCH', body: formData }, 'update shortlet');
+}
+
+export function deleteShortlet(shortletId) {
+    return requestJson(`/shortlets/${shortletId}`, { method: 'DELETE' }, 'delete shortlet');
+}
+
+export function fetchShortletUnits(shortletId) {
+    return requestCollection(`/shortlets/${shortletId}/units`, 'units');
+}
+
+export function createShortletUnit(shortletId, payload) {
+    return requestJson(`/shortlets/${shortletId}/units`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    }, 'create shortlet unit');
+}
+
+export function updateShortletUnit(shortletId, unitId, payload) {
+    return requestJson(`/shortlets/${shortletId}/units/${unitId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+    }, 'update shortlet unit');
+}
+
+export function deleteShortletUnit(shortletId, unitId) {
+    return requestJson(`/shortlets/${shortletId}/units/${unitId}`, { method: 'DELETE' }, 'delete shortlet unit');
 }
 
 export async function getCurrentUser() {
@@ -118,16 +231,26 @@ export function login({ email, password }) {
     }, 'log in');
 }
 
-export function createViewing({ resourceId, email, preferredDate, bookingNotes }) {
-    return requestJson('/viewings', {
+export function logout() {
+    return requestJson('/auth/logout', { method: 'POST' }, 'log out');
+}
+
+export function forgotPassword(email) {
+    return requestJson('/auth/forgot-password', {
         method: 'POST',
-        body: JSON.stringify({
-            property_id: resourceId,
-            email,
-            preferred_date: `${preferredDate}T10:00:00.000Z`,
-            ...(bookingNotes?.trim() ? { booking_notes: bookingNotes.trim() } : {}),
-        }),
-    }, 'viewing request');
+        body: JSON.stringify({ email }),
+    }, 'forgot password');
+}
+
+export function resetPassword({ token, password, confirmPassword }) {
+    return requestJson(`/auth/reset-password/${token}`, {
+        method: 'POST',
+        body: JSON.stringify({ password, confirmPassword }),
+    }, 'reset password');
+}
+
+export function fetchBookings() {
+    return requestCollection('/bookings', 'bookings');
 }
 
 export function createBooking({ resourceId, name, notes, checkIn, checkOut, amount }) {
@@ -140,11 +263,69 @@ export function createBooking({ resourceId, name, notes, checkIn, checkOut, amou
             first_name: nameParts.shift() || name,
             last_name: nameParts.join(' ') || name,
             ...(notes?.trim() ? { notes: notes.trim() } : {}),
-            checkIn: `${checkIn}T14:00:00.000Z`,
-            checkOut: `${checkOut}T11:00:00.000Z`,
+            check_in: checkIn,
+            check_out: checkOut,
             amount,
         }),
     }, 'booking request');
+}
+
+export function acceptBooking(bookingId) {
+    return requestJson(`/bookings/accept/${bookingId}`, { method: 'PATCH' }, 'accept booking');
+}
+
+export function rejectBooking(bookingId) {
+    return requestJson(`/bookings/reject/${bookingId}`, { method: 'PATCH' }, 'reject booking');
+}
+
+export function fetchTenancies() {
+    return requestCollection('/tenancies', 'tenancies');
+}
+
+export function fetchTenancyById(tenancyId) {
+    return requestJson(`/tenancies/${tenancyId}`, { method: 'GET' }, 'tenancy');
+}
+
+export function createTenancy(payload) {
+    return requestJson('/tenancies', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    }, 'create tenancy');
+}
+
+export function updateTenancy(tenancyId, payload) {
+    return requestJson(`/tenancies/${tenancyId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+    }, 'update tenancy');
+}
+
+export function deleteTenancy(tenancyId) {
+    return requestJson(`/tenancies/${tenancyId}`, { method: 'DELETE' }, 'delete tenancy');
+}
+
+export function fetchViewings() {
+    return requestCollection('/viewings', 'viewings');
+}
+
+export function createViewing({ resourceId, email, preferredDate, bookingNotes }) {
+    return requestJson('/viewings', {
+        method: 'POST',
+        body: JSON.stringify({
+            property_id: resourceId,
+            email,
+            preferred_date: `${preferredDate}T10:00:00.000Z`,
+            ...(bookingNotes?.trim() ? { booking_notes: bookingNotes.trim() } : {}),
+        }),
+    }, 'viewing request');
+}
+
+export function acceptViewing(viewingId) {
+    return requestJson(`/viewings/${viewingId}/accept`, { method: 'POST' }, 'accept viewing');
+}
+
+export function rejectViewing(viewingId) {
+    return requestJson(`/viewings/${viewingId}/reject`, { method: 'POST' }, 'reject viewing');
 }
 
 export function openWhatsAppMessage(message) {

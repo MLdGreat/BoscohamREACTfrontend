@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import propertyImage from "./../../assets/boscohamprop3.jpg"
 import { createViewing, getCurrentUser, openWhatsAppMessage } from "../../services/propertyApi"
 
@@ -7,6 +7,8 @@ const MINIMUM_VIEWING_DATE = new Date(Date.now() + 86400000).toISOString().slice
 
 export default function FeaturedPropertyModal({ property, onClose }){
     const [submissionState, setSubmissionState] = useState({ status: "idle", message: "" })
+    const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         if (!property) return undefined
@@ -36,8 +38,10 @@ export default function FeaturedPropertyModal({ property, onClose }){
         try {
             const user = await getCurrentUser()
             if (!user) {
-                setSubmissionState({ status: "auth-required", message: "Please sign up or log in before requesting a viewing." })
-                return
+                navigate('/login', {
+                    state: { from: location.pathname || '/' },
+                });
+                return;
             }
             await createViewing({
                 resourceId: property.viewingResourceId || property.listingId || property.id,

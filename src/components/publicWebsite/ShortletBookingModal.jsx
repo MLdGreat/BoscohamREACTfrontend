@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import propertyImage from './../../assets/boscohamprop3.jpg';
-import { createBooking, getCurrentUser, openWhatsAppMessage } from '../../services/propertyApi';
+import { createBooking, openWhatsAppMessage } from '../../services/propertyApi';
 
 const MINIMUM_STAY_DATE = new Date().toISOString().slice(0, 10);
 
@@ -49,11 +49,6 @@ export default function ShortletBookingModal({ property, onClose }) {
         setSubmissionState({ status: 'submitting', message: 'Sending your booking request...' });
 
         try {
-            const user = await getCurrentUser();
-            if (!user) {
-                setSubmissionState({ status: 'auth-required', message: 'Please sign up or log in before making a booking.' });
-                return;
-            }
             await createBooking({
                 resourceId: unitId,
                 name: form.get('name'),
