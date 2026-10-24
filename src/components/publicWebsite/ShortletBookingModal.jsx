@@ -91,9 +91,12 @@ export default function ShortletBookingModal({ property, onClose }) {
                         </div>
                     ) : null}
                     {property.features?.length > 0 && (
-                        <ul className="property-modal-amenities" aria-label="Amenities">
-                            {property.features.map((feature) => <li key={feature}>{feature}</li>)}
-                        </ul>
+                        <section className="property-modal-feature-section" aria-label="Property features">
+                            <h3>Features</h3>
+                            <ul className="property-modal-amenities">
+                                {property.features.map((feature) => <li key={feature}>{feature}</li>)}
+                            </ul>
+                        </section>
                     )}
                     <p className="property-modal-description">{property.description}</p>
                     <strong className="property-modal-price">{property.price}</strong>

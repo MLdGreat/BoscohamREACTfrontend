@@ -84,8 +84,11 @@ function formatLocation(...parts) {
 
 function formatPrice(price, suffix = '') {
     if (price === undefined || price === null || price === '') return 'Price on request';
-    if (typeof price === 'number') return `N${price.toLocaleString()}${suffix}`;
-    return `${price}${suffix}`;
+    if (typeof price === 'number') return `₦${price.toLocaleString('en-NG')}${suffix}`;
+
+    const formattedPrice = String(price).trim().replace(/^(?:NGN|N)\s*/i, '₦');
+    const priceWithCurrency = formattedPrice.startsWith('₦') ? formattedPrice : `₦${formattedPrice}`;
+    return `${priceWithCurrency}${suffix}`;
 }
 
 function normalizeFeatures(features) {
@@ -363,12 +366,13 @@ function normalizeUnits(listing, category, priceKey, titleFallback) {
         viewingResourceType: category === 'Apartment' ? 'apartment' : 'property',
         features: normalizeFeatures(listing.features),
         category,
+        parentTitle: category === 'Apartment' || category === 'Shortlet' ? listing.title : undefined,
         location: formatLocation(listing.address, listing.city, listing.state),
         title: unit.title || unit.unit_name || unit.unit_number || unit.unitNumber || listing.title || `${titleFallback} ${index + 1}`,
         beds: unit.bedrooms ?? unit.bedroom,
         baths: unit.bathrooms ?? unit.bathroom,
         amount: Number(String(unit[priceKey] ?? unit.price ?? 0).replace(/[^\d.]/g, '')) || 0,
-        price: formatPrice(unit[priceKey] ?? unit.price, category === 'Shortlet' ? ' / night' : ''),
+        price: formatPrice(unit[priceKey] ?? unit.price, category === 'Apartment' ? ' / year' : category === 'Shortlet' ? ' / night' : ''),
         description: listing.description,
         image: getImageUrl(unit.images) || getImageUrl(listing.images),
     }));

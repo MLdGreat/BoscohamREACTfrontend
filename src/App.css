@@ -430,6 +430,13 @@ body {
 .property-modal-amenities{
   margin: -12px 0 24px;
 }
+.property-modal-feature-section h3{
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+}
 .property-card .property-prices{
   display: flex;
   gap: 20px;

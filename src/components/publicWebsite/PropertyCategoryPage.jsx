@@ -42,17 +42,20 @@ export default function PropertyCategoryPage({ title, description, searchLabel, 
             <main className="for-sale-category">
                 <h1 className="for-sale-category-title">{title}</h1>
                 <p className="for-sale-category-description">{description}</p>
-                <div className="search-input">
+                <form className="search-input" role="search" onSubmit={(event) => event.preventDefault()}>
                     <label htmlFor={`${searchLabel}-search`}>Search {searchLabel}</label>
-                    <input
-                        id={`${searchLabel}-search`}
-                        name="search"
-                        type="search"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder={`Search ${searchLabel.toLowerCase()}...`}
-                    />
-                </div>
+                    <div className="search-input-controls">
+                        <input
+                            id={`${searchLabel}-search`}
+                            name="search"
+                            type="search"
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder={`Search ${searchLabel.toLowerCase()}...`}
+                        />
+                        <button type="submit">Search</button>
+                    </div>
+                </form>
                 {isLoading ? <Loading /> : error ? <p role="alert">{error}</p> : (
                     <div className="for-sale-properties">
                         <ul>

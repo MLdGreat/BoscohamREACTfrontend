@@ -1,19 +1,22 @@
 import propertyImage from './../../assets/boscohamprop3.jpg';
 
-export default function PropertyCard({ category, location, title, beds, baths, features = [], price, image, onViewDetails }) {
+export default function PropertyCard({ category, location, title, parentTitle, beds, baths, features = [], price, image, onViewDetails }) {
     return(
         <>
-        <div className="property-card">
+        <article className="property-card">
             <div className="property-image-container">
                 <img src={image || propertyImage} alt={title} className="property-image"/>
                 <span className="property-category">
                     {category}
                 </span>
             </div>
-            <div>
+            <div className="property-card-content">
                 <h5 className="property-location">
                     {location}
                 </h5>
+                {parentTitle && parentTitle !== title && (
+                    <p className="property-parent-title">{parentTitle}</p>
+                )}
                 <h3 className="property-title">
                     {title}
                 </h3>
@@ -41,7 +44,7 @@ export default function PropertyCard({ category, location, title, beds, baths, f
                     </p>
                 </div>
             </div>
-        </div>
+        </article>
         </>
     )
 }

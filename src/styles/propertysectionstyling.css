@@ -50,7 +50,7 @@ body {
   margin-bottom: 12px;
   font-size: clamp(30px, 5vw, 48px);
 }
-.for-sale-category p{
+.for-sale-category > p{
     color: var(--secondary);
     line-height: 1.5;
     margin-bottom: 20px;
@@ -66,23 +66,55 @@ body {
   font-size: 14px;
   font-weight: 600;
 }
-.search-input input{
-    width:100%;
-  min-height: 44px;
-  padding: 10px 14px;
+.search-input-controls{
+  display: flex;
+  min-height: 50px;
+  padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
+  background: var(--card-background);
+  box-shadow: 0 5px 18px rgb(28 25 23 / 6%);
+}
+.search-input input{
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
   color: var(--primary);
   font: inherit;
 }
 .search-input input:focus{
+  outline: 0;
+}
+.search-input-controls:focus-within{
   outline: 2px solid var(--accent-light);
   border-color: var(--accent);
+}
+.search-input button{
+  flex: 0 0 auto;
+  min-width: 100px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--card-background);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+.search-input button:hover{
+  background: var(--accent-hover);
+}
+.search-input button:focus-visible{
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 .for-sale-properties{
   width: 100%;
 }
-.for-sale-properties ul{
+.for-sale-properties > ul{
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
@@ -96,8 +128,84 @@ body {
   background-color: var(--card-background);
   cursor: pointer;
 }
+.for-sale-category .property-card{
+  display: flex;
+  width: 100%;
+  height: auto;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 6px;
+}
+.for-sale-category .property-image{
+  height: 220px;
+  border-radius: 6px;
+}
+.for-sale-category .property-card-content{
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 4px 8px 0;
+}
+.for-sale-category .property-card-content > p{
+  margin: 0;
+}
+.for-sale-category .property-parent-title{
+  margin: 0 0 4px;
+  color: var(--accent-hover);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.for-sale-category .property-card .property-features{
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.for-sale-category .property-card .property-features .property-feature{
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--subtle-background);
+  font-size: 11px;
+  line-height: 1.2;
+}
+.for-sale-category .property-amenities{
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.for-sale-category .property-amenities li{
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+.for-sale-category .property-card .property-prices{
+  align-items: center;
+  gap: 12px;
+  margin: auto 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.for-sale-category .property-card .property-prices .property-price{
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.for-sale-category .property-card .property-prices .property-link button{
+  padding: 7px 10px;
+  border-radius: 4px;
+  background: var(--accent-light);
+  color: var(--accent-hover);
+  font-size: 13px;
+  font-weight: 600;
+}
+.for-sale-category .property-card .property-prices .property-link button:hover{
+  background: #EED8BE;
+}
 @media (max-width: 900px){
-  .for-sale-properties ul{
+  .for-sale-properties > ul{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -105,7 +213,7 @@ body {
   .for-sale-category{
     padding: 20px;
   }
-  .for-sale-properties ul{
+  .for-sale-properties > ul{
     grid-template-columns: 1fr;
   }
 }
