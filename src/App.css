@@ -479,6 +479,11 @@ body {
 .property-prices .property-link button:hover{
   color: var(--accent-hover);
 }
+.property-prices .property-link button:focus-visible{
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
 /* Property viewing modal */
 .property-modal{
   position: fixed;
@@ -639,7 +644,7 @@ body {
   padding: 5px 9px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: var(--card-background);
+  background: transparent;
 }
 .property-modal-description{
   max-width: 420px;

@@ -226,6 +226,10 @@ body {
 .for-sale-category .property-card .property-prices .property-link button:hover{
   background: #EED8BE;
 }
+.for-sale-category .property-card .property-prices .property-link button:focus-visible{
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 @media (max-width: 900px){
   .for-sale-properties > ul{
     grid-template-columns: repeat(2, minmax(0, 1fr));
