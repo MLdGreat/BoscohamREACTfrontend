@@ -71,11 +71,16 @@ async function requestCollection(endpoint, resourceName) {
     return [];
 }
 
+function getImageUrls(images) {
+    const imageList = typeof images === 'string' ? [images] : Array.isArray(images) ? images : [];
+    return imageList
+        .map((item) => typeof item === 'string' ? item : item?.image || item?.image_url || item?.url)
+        .filter((url) => typeof url === 'string' && url.trim())
+        .map((url) => url.trim());
+}
+
 function getImageUrl(images) {
-    if (typeof images === 'string') return images;
-    if (!Array.isArray(images)) return undefined;
-    const image = images.find((item) => item?.image || item?.image_url || item?.url || typeof item === 'string');
-    return typeof image === 'string' ? image : image?.image || image?.image_url || image?.url;
+    return getImageUrls(images)[0];
 }
 
 function formatLocation(...parts) {
@@ -346,6 +351,7 @@ export function normalizeProperty(property) {
         beds: property.beds ?? property.bedrooms ?? property.bedroom,
         baths: property.baths ?? property.bathrooms ?? property.bathroom,
         price: formatPrice(property.price),
+        images: getImageUrls(property.images),
         image: getImageUrl(property.images),
     };
 }
@@ -374,6 +380,7 @@ function normalizeUnits(listing, category, priceKey, titleFallback) {
         amount: Number(String(unit[priceKey] ?? unit.price ?? 0).replace(/[^\d.]/g, '')) || 0,
         price: formatPrice(unit[priceKey] ?? unit.price, category === 'Apartment' ? ' / year' : category === 'Shortlet' ? ' / night' : ''),
         description: listing.description,
+        images: getImageUrls(unit.images).length > 0 ? getImageUrls(unit.images) : getImageUrls(listing.images),
         image: getImageUrl(unit.images) || getImageUrl(listing.images),
     }));
 }

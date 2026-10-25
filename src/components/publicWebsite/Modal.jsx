@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import propertyImage from "./../../assets/boscohamprop3.jpg"
 import { createViewing, getCurrentUser, openWhatsAppMessage } from "../../services/propertyApi"
+import PropertyImageGallery from './PropertyImageGallery';
 
 const MINIMUM_VIEWING_DATE = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
 
@@ -81,7 +81,7 @@ export default function FeaturedPropertyModal({ property, onClose }){
                 <div className="property-modal-details">
                     <p className="property-modal-eyebrow">{property.category}</p>
                     <p className="property-modal-location">{property.location}</p>
-                    <img className="property-modal-image" src={property.image || propertyImage} alt={property.title} />
+                    <PropertyImageGallery images={property.images} title={property.title} />
                     <h2 id="property-modal-title">{property.title}</h2>
                     {(property.beds !== null && property.beds !== undefined) || (property.baths !== null && property.baths !== undefined) ? (
                         <div className="property-modal-features">

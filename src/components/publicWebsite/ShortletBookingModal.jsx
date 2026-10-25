@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import propertyImage from './../../assets/boscohamprop3.jpg';
 import { createBooking, openWhatsAppMessage } from '../../services/propertyApi';
+import PropertyImageGallery from './PropertyImageGallery';
 
 const MINIMUM_STAY_DATE = new Date().toISOString().slice(0, 10);
 
@@ -82,7 +82,7 @@ export default function ShortletBookingModal({ property, onClose }) {
                 <div className="property-modal-details">
                     <p className="property-modal-eyebrow">{property.category}</p>
                     <p className="property-modal-location">{property.location}</p>
-                    <img className="property-modal-image" src={property.image || propertyImage} alt={property.title} />
+                    <PropertyImageGallery images={property.images} title={property.title} />
                     <h2 id="shortlet-modal-title">{property.title}</h2>
                     {(property.beds !== null && property.beds !== undefined) || (property.baths !== null && property.baths !== undefined) ? (
                         <div className="property-modal-features">
@@ -101,7 +101,7 @@ export default function ShortletBookingModal({ property, onClose }) {
                     <p className="property-modal-description">{property.description}</p>
                     <strong className="property-modal-price">{property.price}</strong>
                 </div>
-                <form className="viewing-form" onSubmit={handleSubmit}>
+                <form className="viewing-form shortlet-booking-form" onSubmit={handleSubmit}>
                     <p className="viewing-form-eyebrow">Reserve your stay</p>
                     <h3>Book this shortlet</h3>
                     <p className="viewing-form-intro">Share your stay details and our team will confirm availability with you.</p>

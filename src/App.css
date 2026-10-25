@@ -371,6 +371,7 @@ body {
   font-size: 12px;
 }
 .property-image{
+  display: block;
   width: 100%;
   height: 200px;
   object-fit: cover;
@@ -428,7 +429,18 @@ body {
   line-height: 1.25;
 }
 .property-modal-amenities{
-  margin: -12px 0 24px;
+  margin: 0;
+}
+.property-modal-feature-section{
+  margin: 16px 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border);
+}
+.property-modal-amenities li{
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.2;
 }
 .property-modal-feature-section h3{
   margin: 0 0 8px;
@@ -487,10 +499,10 @@ body {
   position: relative;
   z-index: 1;
   display: flex;
-  width: min(100%, 920px);
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  background: var(--card-background);
+  width: min(100%, 960px);
+  max-height: min(calc(100vh - 48px), 860px);
+  overflow: hidden;
+  background: var(--subtle-background);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 24px 70px rgb(28 25 23 / 22%);
@@ -499,10 +511,17 @@ body {
 .viewing-form{
   flex: 1;
   min-width: 0;
-  padding: 56px 48px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 40px 36px;
 }
 .property-modal-details{
+  --modal-details-inline-padding: 36px;
   background: var(--subtle-background);
+}
+.viewing-form{
+  background: var(--card-background);
 }
 .property-modal-eyebrow,
 .viewing-form-eyebrow{
@@ -513,21 +532,96 @@ body {
   text-transform: uppercase;
 }
 .property-modal-location{
-  margin-top: 28px;
-  color: var(--secondary);
+  margin-top: 16px;
+  color: var(--primary);
   font-size: 14px;
+  line-height: 1.45;
+}
+.property-image-gallery{
+  margin-top: 12px;
+}
+.property-image-gallery-stage{
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--primary);
 }
 .property-modal-image{
   display: block;
   width: 100%;
   height: 190px;
-  margin-top: 12px;
   object-fit: cover;
-  border-radius: 8px;
 }
-.property-modal-details h2{
+.property-gallery-arrow{
+  position: absolute;
+  top: 50%;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 50%;
+  background: rgb(28 25 23 / 68%);
+  color: white;
+  font: 26px/1 var(--font-body);
+  cursor: pointer;
+}
+.property-gallery-arrow:focus-visible{
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+.property-gallery-previous{
+  left: 10px;
+}
+.property-gallery-next{
+  right: 10px;
+}
+.property-gallery-count{
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: rgb(28 25 23 / 72%);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+}
+.property-gallery-thumbnails{
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  overflow-x: auto;
+  padding: 2px 1px 4px;
+}
+.property-gallery-thumbnail{
+  flex: 0 0 64px;
+  width: 64px;
+  height: 48px;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.property-gallery-thumbnail.is-active{
+  border-color: var(--accent);
+}
+.property-gallery-thumbnail:focus-visible{
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.property-gallery-thumbnail img{
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.property-modal .property-modal-details h2{
   max-width: 360px;
-  margin-top: 10px;
+  margin: 16px 0 0;
   color: var(--primary);
   font-family: var(--font-display);
   font-size: clamp(30px, 4vw, 46px);
@@ -537,19 +631,29 @@ body {
 .property-modal-features{
   display: flex;
   gap: 20px;
-  margin: 28px 0;
-  color: var(--secondary);
+  margin: 16px 0;
+  color: var(--primary);
   font-size: 14px;
+}
+.property-modal-features span{
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card-background);
 }
 .property-modal-description{
   max-width: 420px;
-  color: var(--secondary);
+  margin-top: 16px;
+  color: var(--primary);
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 .property-modal-price{
   display: block;
-  margin-top: 28px;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 0;
+  background: transparent;
   color: var(--primary);
   font-family: var(--font-display);
   font-size: 24px;
@@ -558,17 +662,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 9px;
+  gap: 8px;
 }
 .viewing-form h3{
-  margin-top: 5px;
+  margin: 0;
   color: var(--primary);
   font-family: var(--font-display);
   font-size: 30px;
   font-weight: 600;
 }
 .viewing-form-intro{
-  margin-bottom: 16px;
+  margin: 0 0 8px;
   color: var(--secondary);
   font-size: 14px;
   line-height: 1.6;
@@ -581,13 +685,17 @@ body {
 .viewing-form input,
 .viewing-form textarea{
   width: 100%;
-  margin-bottom: 9px;
+  margin: 0;
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--primary);
   font: inherit;
   resize: vertical;
+}
+.shortlet-booking-form textarea[name="notes"]{
+  flex: 0 0 auto;
+  min-height: 120px;
 }
 .viewing-form input:focus,
 .viewing-form textarea:focus{
@@ -1087,13 +1195,10 @@ body {
   }
   .property-modal-content{
     display: block;
-  }
-  .property-modal-details,
-  .viewing-form{
-    padding: 40px 24px;
+    overflow-y: auto;
   }
   .property-modal-location{
-    margin-top: 20px;
+    margin-top: 14px;
   }
   .property-modal{
     padding: 12px;
@@ -1103,18 +1208,28 @@ body {
   }
   .property-modal-details,
   .viewing-form{
-    padding: 32px 20px;
+    min-height: auto;
+    overflow: visible;
+    padding: 24px 16px;
   }
-  .property-modal-details h2{
+  .property-modal-details{
+    --modal-details-inline-padding: 16px;
+  }
+  .property-modal .property-modal-details h2{
     font-size: clamp(30px, 10vw, 42px);
   }
   .property-modal-features{
-    gap: 14px;
+    gap: 8px;
     flex-wrap: wrap;
-    margin: 20px 0;
+    margin: 16px 0;
   }
   .property-modal-image{
     height: clamp(150px, 42vw, 190px);
+  }
+  .property-modal-close{
+    position: fixed;
+    top: 20px;
+    right: 20px;
   }
   .auth-page{
     display: block;
