@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { createBooking, openWhatsAppMessage } from '../../services/propertyApi';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { createBooking, getCurrentUser, initializePayment } from '../../services/propertyApi';
 import PropertyImageGallery from './PropertyImageGallery';
 
 const MINIMUM_STAY_DATE = new Date().toISOString().slice(0, 10);
 
 export default function ShortletBookingModal({ property, onClose }) {
     const [submissionState, setSubmissionState] = useState({ status: 'idle', message: '' });
+    const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         if (!property) return undefined;
@@ -45,10 +48,18 @@ export default function ShortletBookingModal({ property, onClose }) {
             return;
         }
 
-        setSubmissionState({ status: 'submitting', message: 'Sending your booking request...' });
+        setSubmissionState({ status: 'submitting', message: 'Preparing your secure checkout...' });
 
         try {
-            await createBooking({
+            const user = await getCurrentUser();
+            if (!user) {
+                navigate('/login', {
+                    state: { from: `${location.pathname}${location.search}` },
+                });
+                return;
+            }
+
+            const bookingResponse = await createBooking({
                 resourceId: unitId,
                 name: form.get('name'),
                 notes: `Email: ${form.get('email')}. Guests: ${form.get('guests')}. ${form.get('notes') || ''}`.trim(),
@@ -56,19 +67,22 @@ export default function ShortletBookingModal({ property, onClose }) {
                 checkOut,
                 amount,
             });
-            openWhatsAppMessage([
-                'New shortlet booking request',
-                `Property: ${property.title}`,
-                `Location: ${property.location}`,
-                `Name: ${form.get('name')}`,
-                `Email: ${form.get('email')}`,
-                `Check-in: ${checkIn}`,
-                `Check-out: ${checkOut}`,
-                `Guests: ${form.get('guests')}`,
-                `Amount: N${amount.toLocaleString()}`,
-            ].join('\n'));
-            setSubmissionState({ status: 'success', message: 'Your booking request has been sent. We will confirm availability shortly.' });
-            formElement.reset();
+            const booking = bookingResponse.data?.booking
+                || bookingResponse.data
+                || bookingResponse.booking
+                || bookingResponse;
+            const bookingId = booking.id || booking.booking_id;
+
+            if (!bookingId) {
+                throw new Error('Your booking was created, but its payment could not be started. Please contact Boscoham for help.');
+            }
+
+            const payment = await initializePayment(bookingId);
+            if (!payment.authorizationUrl) {
+                throw new Error('Your booking was created, but checkout could not be opened. Please contact Boscoham for help.');
+            }
+
+            window.location.assign(payment.authorizationUrl);
         } catch (error) {
             setSubmissionState({ status: 'error', message: error.message });
         }
@@ -123,7 +137,7 @@ export default function ShortletBookingModal({ property, onClose }) {
                         </p>
                     )}
                     <button className="viewing-submit" type="submit" disabled={submissionState.status === 'submitting'}>
-                        {submissionState.status === 'submitting' ? 'Sending...' : 'Request booking'}
+                        {submissionState.status === 'submitting' ? 'Opening checkout...' : 'Continue to payment'}
                     </button>
                 </form>
             </div>

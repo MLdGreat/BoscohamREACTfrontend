@@ -1,0 +1,176 @@
+.payment-callback-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 32px 20px;
+    background:
+        radial-gradient(ellipse at 12% 8%, rgb(181 113 46 / 10%), transparent 34%),
+        linear-gradient(145deg, #faf8f5 0%, #f2eee8 100%);
+    color: var(--primary, #1c1917);
+}
+
+.payment-callback-content {
+    width: min(100%, 560px);
+    padding: clamp(28px, 6vw, 56px);
+    border: 1px solid var(--border, #e2ddd6);
+    border-radius: 6px;
+    background: var(--card-background, #fff);
+    box-shadow: 0 24px 70px rgb(28 25 23 / 8%);
+    text-align: center;
+    animation: payment-callback-arrive 420ms ease-out both;
+}
+
+.payment-callback-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--primary, #1c1917);
+    font-family: var(--font-display, Georgia, serif);
+    font-size: 20px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.payment-callback-brand img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.payment-callback-mark {
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    margin: 38px auto 22px;
+    border: 1px solid rgb(61 122 90 / 30%);
+    border-radius: 50%;
+    background: rgb(61 122 90 / 9%);
+    color: var(--success, #3d7a5a);
+    font-family: var(--font-display, Georgia, serif);
+    font-size: 28px;
+}
+
+.payment-callback-mark.is-cancelled {
+    border-color: rgb(176 122 42 / 32%);
+    background: rgb(176 122 42 / 10%);
+    color: var(--warning, #b07a2a);
+}
+
+.payment-callback-eyebrow {
+    margin-bottom: 12px;
+    color: var(--accent, #b5712e);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+}
+
+.payment-callback-content h1 {
+    max-width: 430px;
+    margin: 0 auto 12px;
+    font-family: var(--font-display, Georgia, serif);
+    font-size: clamp(28px, 6vw, 38px);
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.payment-callback-message {
+    max-width: 410px;
+    margin: 0 auto;
+    color: var(--secondary, #6b6560);
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.payment-callback-reference {
+    margin: 26px 0 0;
+    padding: 15px 16px;
+    border: 1px solid var(--border, #e2ddd6);
+    border-radius: 4px;
+    background: var(--background, #faf8f5);
+    text-align: left;
+}
+
+.payment-callback-reference dt {
+    margin-bottom: 5px;
+    color: var(--secondary, #6b6560);
+    font-size: 12px;
+}
+
+.payment-callback-reference dd {
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.payment-callback-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 28px;
+}
+
+.payment-callback-primary,
+.payment-callback-secondary {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.payment-callback-primary {
+    border: 1px solid var(--accent, #b5712e);
+    background: var(--accent, #b5712e);
+    color: #fff;
+}
+
+.payment-callback-primary:hover {
+    border-color: var(--accent-hover, #9d601f);
+    background: var(--accent-hover, #9d601f);
+}
+
+.payment-callback-secondary {
+    border: 1px solid var(--border, #e2ddd6);
+    color: var(--primary, #1c1917);
+}
+
+.payment-callback-secondary:hover {
+    border-color: var(--accent, #b5712e);
+    color: var(--accent, #b5712e);
+}
+
+.payment-callback-note {
+    margin-top: 24px;
+    color: var(--secondary, #6b6560);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+@keyframes payment-callback-arrive {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .payment-callback-content {
+        animation: none;
+    }
+
+    .payment-callback-primary,
+    .payment-callback-secondary {
+        transition: none;
+    }
+}

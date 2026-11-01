@@ -278,6 +278,21 @@ export function createBooking({ resourceId, name, notes, checkIn, checkOut, amou
     }, 'booking request');
 }
 
+export function initializePayment(bookingId) {
+    return requestJson('/payments/initialize', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: JSON.stringify({ booking_id: bookingId }),
+    }, 'initialize payment');
+}
+
+export function verifyPayment(reference) {
+    return requestJson('/payments/verify', {
+        method: 'POST',
+        body: JSON.stringify({ reference }),
+    }, 'verify payment');
+}
+
 export function acceptBooking(bookingId) {
     return requestJson(`/bookings/accept/${bookingId}`, { method: 'PATCH' }, 'accept booking');
 }

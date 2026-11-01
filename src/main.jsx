@@ -8,6 +8,7 @@ import ForSaleCategory from './components/publicWebsite/ForSaleCategory.jsx'
 import ForShortletCategory from './components/publicWebsite/ForShortletCategory.jsx'
 import ForApartmentCategory from './components/publicWebsite/ForApartmentCategory.jsx'
 import AuthPage from './components/publicWebsite/AuthPage.jsx'
+import PaymentCallback from './components/publicWebsite/PaymentCallback.jsx'
 
 const router = createBrowserRouter([
   {
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
   {
     path: "/login",
     element: <AuthPage mode="login" />,
+  },
+  {
+    path: "/payment/callback",
+    element: <PaymentCallback />,
   },
   {
     path:"*",
