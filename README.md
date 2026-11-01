@@ -98,12 +98,14 @@ The server returns an `x-request-id` header for support and log tracing. API tra
 | POST | `/api/auth/forgot-password` | Public | JSON: `email` | 200 generic result |
 | POST | `/api/auth/reset-password` | Public | JSON: `password`, `confirmPassword`; reset token in query string or JSON body | 200 with message |
 | POST | `/api/auth/reset-password/:token` | Public | JSON: `password`, `confirmPassword` (legacy token format) | 200 with message |
+| GET | `/api/users?page=1&limit=10` | Admin | Paginated user directory; excludes password hashes |
+| POST | `/api/users` | Admin | Creates an admin account using signup fields; role is assigned by the server |
 
 The forgot-password email links to the frontend root in the form `https://<admin-frontend-domain>/?token=<reset-token>`. In production, set `PRODUCTION_FRONTEND_DOMAIN` to the admin frontend origin (scheme and host, without an API path). If it is unset, the first origin in `CORS_ORIGIN` is used. Locally, reset links point to `http://localhost:5173/?token=<reset-token>`.
 
 The frontend should read `token` from the page URL and submit the new password to `POST /api/auth/reset-password?token=<reset-token>` with JSON `{ "password": "...", "confirmPassword": "..." }`. The token may also be included in the JSON body as `token`; the `/:token` route remains available for existing path-based links. Reset tokens expire after 30 minutes and can only be used once.
 
-Signup and login require a valid `.com`, `.net`, `.org`, or `.io` email. Passwords must be 8-30 characters and include uppercase, lowercase, number, and one of `@$!%*?&`. Signup additionally requires matching `confirmPassword`. User signup does not provide a way to grant the admin role; provision admin accounts through the project's trusted operational process.
+Signup and login require a valid `.com`, `.net`, `.org`, or `.io` email. Passwords must be 8-30 characters and include uppercase, lowercase, number, and one of `@$!%*?&`. Signup additionally requires matching `confirmPassword`. Public signup cannot grant admin access. An authenticated admin can create admin accounts through `POST /api/users`; the server always assigns the `admin` role and ignores a submitted `role`. Provision the first admin through the project's trusted operational process.
 
 `admin` below means a logged-in session whose role is exactly `admin`. Missing sessions return 401; other roles return 403. `session` means any logged-in user. `public` means no authentication middleware is attached.
 
@@ -177,15 +179,17 @@ Standalone shortlet unit creation takes JSON fields `title`, positive `price_per
 | PATCH | `/api/bookings/reject/:id` | Admin | Rejects booking |
 | POST | `/api/payments/initialize` | Session | Initialize Paystack payment for the signed-in user's pending booking; requires `Idempotency-Key` |
 | POST | `/api/payments/verify` | Session | Verify a payment reference owned by the signed-in user against Paystack |
+| GET | `/api/payments/shortlet-revenue?period=daily` | Admin | Revenue and successful booking counts grouped by UTC day, week, month, or year |
 | GET | `/api/stays?page=1&limit=20` | Admin | Read stays; refreshes date-derived statuses |
 
-Booking create JSON uses camelCase dates. The handler does not require login; if a valid session exists, its user ID is attached automatically. Do not send `user_id`.
+Booking create JSON uses camelCase dates. The handler does not require login; if a valid session exists, its user ID is attached automatically. Do not send `user_id`. `contact_email` is required for booking confirmation emails.
 
 ```json
 {
   "shortlet_unit_id": "00000000-0000-0000-0000-000000000000",
   "first_name": "Jane",
   "last_name": "Doe",
+  "contact_email": "jane@example.com",
   "notes": "Late arrival",
   "checkIn": "2026-11-01T15:00:00.000Z",
   "checkOut": "2026-11-05T11:00:00.000Z",
@@ -195,13 +199,17 @@ Booking create JSON uses camelCase dates. The handler does not require login; if
 
 The booking starts `pending`. Date overlap on the same unit returns 409. The accept/reject routes take no body. A successful acceptance returns the booking row; it does not include the stay row. The stay is generated only on confirmation, linked to the booking, and its status follows its schedule: `pending` before check-in, `active` from check-in until checkout, and `completed` at/after checkout. The stay listing reconciles statuses when read; there is no separate stay create/update/delete endpoint. The existing `terminated` stay status is preserved by this refresh.
 
+#### Shortlet booking notifications
+
+The customer receives a confirmation email only after both the booking status is `confirmed` and at least one linked payment is `successful`. This works regardless of which condition happens first. Apply [migrations/20261101_add_shortlet_booking_notifications.sql](migrations/20261101_add_shortlet_booking_notifications.sql) to add the booking contact email and retryable notification outbox. The worker polls every 30 seconds, and failed sends are retried after one minute. Existing bookings cannot be notified unless their contact email is populated.
+
+Configure Resend with `RESEND_API_KEY` and `EMAIL_FROM` to send booking confirmation emails.
+
 #### Payments
 
 Payment initialization and verification require a logged-in session. The booking must belong to that user and still have `pending` booking status. The server uses the booking's stored amount and the account email; do not send an amount or email from the browser.
 
 Before enabling these endpoints, apply [migrations/20261031_add_payment_reference.sql](migrations/20261031_add_payment_reference.sql) and configure `PAYSTACK_TEST_SECRET_KEY` and `PAYSTACK_CALLBACK_URL` in `config.env`. The migration backfills references for existing payment rows before making the column required and unique.
-
-For the production frontend, set `PAYSTACK_CALLBACK_URL=https://www.boscoham.homes/payment/callback`. The frontend is a single-page app; Vercel must rewrite direct page requests to `index.html` so the callback route works when Paystack opens it. The repository's `vercel.json` provides this fallback for all frontend routes.
 
 Initialize with a UUID booking ID and a fresh `Idempotency-Key` for each new payment attempt. Reuse the same key only when retrying the same request. The server creates a unique reference, saves a pending payment, and returns the Paystack authorization URL:
 
@@ -265,6 +273,33 @@ Verification returns HTTP 200 when Paystack confirms the transaction details mat
   }
 }
 ```
+
+Admins can read shortlet revenue with `GET /api/payments/shortlet-revenue?period=<period>`. `period` is required and accepts `daily`, `weekly`, `monthly`, or `yearly`. Only payments with `payment_status: "successful"` and a `paid_at` timestamp are included; buckets use the payment time in UTC, and weekly buckets start on Monday. `totalRevenue` is the all-time total for the selected grouping, while `buckets` omits periods with no successful payments. Revenue amounts are in NGN.
+
+```json
+{
+  "status": "success",
+  "data": {
+    "period": "monthly",
+    "currency": "NGN",
+    "totalRevenue": "245000.00",
+    "buckets": [
+      {
+        "periodStart": "2026-10-01T00:00:00.000Z",
+        "revenue": "120000.00",
+        "successfulBookings": 1
+      },
+      {
+        "periodStart": "2026-11-01T00:00:00.000Z",
+        "revenue": "125000.00",
+        "successfulBookings": 1
+      }
+    ]
+  }
+}
+```
+
+An unsupported or missing period returns HTTP 400. Requests without an admin session return HTTP 401 or 403.
 
 Initialization can return 400 for an invalid booking ID, 401 without a session, 404 when the booking/account is unavailable, or 409 when the booking is not payable or already paid. Verification can return 400 for an invalid reference, 401 without a session, 404 when no owned payment has that reference, or 502 when Paystack cannot verify it or the returned details do not match. Treat only `payment_status: "successful"` as paid. Database and other unexpected errors use the normal server error response.
 
@@ -491,7 +526,6 @@ Use `highlighted` as the string expected by the existing property schema, and co
 
 ## Route gaps and implementation notes
 
-- `/api/users` is mounted but currently has no routes. Do not use it as a user-management API.
 - The stays API is read-only. Confirm/reject stays through the booking accept/reject actions; there is no direct status endpoint.
 - The admin tenant assignment alias has a known unit-reference issue; use `/api/tenants/assign/:apartmentUnitId`.
 - A few APIs are legacy/inconsistent: tenant create routes use different validation and response formats; some validation errors are not in the common envelope. Frontend error handling should use both HTTP status and a tolerant message fallback.

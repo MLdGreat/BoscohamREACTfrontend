@@ -48,7 +48,7 @@ export default function PaymentCallback() {
 
     if (verification.status === 'successful') {
         title = 'Payment confirmed';
-        message = 'Your payment was verified successfully. Your shortlet booking is now with the Boscoham team.';
+        message = 'Your payment was verified successfully. A confirmation email will be sent to you once your booking is confirmed.';
     } else if (['failed', 'refunded'].includes(verification.status) || (isUnsuccessful && verification.status === 'pending')) {
         title = 'Payment was not completed';
         message = 'Paystack did not confirm a successful payment. You can return to Boscoham or contact our team for help.';

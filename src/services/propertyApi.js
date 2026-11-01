@@ -261,7 +261,7 @@ export function fetchBookings() {
     return requestCollection('/bookings', 'bookings');
 }
 
-export function createBooking({ resourceId, name, notes, checkIn, checkOut, amount }) {
+export function createBooking({ resourceId, name, contactEmail, notes, checkIn, checkOut, amount }) {
     const nameParts = name.trim().split(/\s+/);
 
     return requestJson('/bookings', {
@@ -270,6 +270,7 @@ export function createBooking({ resourceId, name, notes, checkIn, checkOut, amou
             shortlet_unit_id: resourceId,
             first_name: nameParts.shift() || name,
             last_name: nameParts.join(' ') || name,
+            contact_email: contactEmail,
             ...(notes?.trim() ? { notes: notes.trim() } : {}),
             checkIn,
             checkOut,

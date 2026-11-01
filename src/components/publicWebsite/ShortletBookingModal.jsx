@@ -62,7 +62,8 @@ export default function ShortletBookingModal({ property, onClose }) {
             const bookingResponse = await createBooking({
                 resourceId: unitId,
                 name: form.get('name'),
-                notes: `Email: ${form.get('email')}. Guests: ${form.get('guests')}. ${form.get('notes') || ''}`.trim(),
+                contactEmail: form.get('email'),
+                notes: `Guests: ${form.get('guests')}. ${form.get('notes') || ''}`.trim(),
                 checkIn,
                 checkOut,
                 amount,
@@ -121,7 +122,7 @@ export default function ShortletBookingModal({ property, onClose }) {
                     <p className="viewing-form-intro">Share your stay details and our team will confirm availability with you.</p>
                     <label htmlFor="booking-name">Full name</label>
                     <input id="booking-name" name="name" type="text" placeholder="Your name" required />
-                    <label htmlFor="booking-email">Email address</label>
+                    <label htmlFor="booking-email">Contact email for booking confirmation</label>
                     <input id="booking-email" name="email" type="email" placeholder="you@example.com" required />
                     <label htmlFor="booking-check-in">Check-in date</label>
                     <input id="booking-check-in" name="checkIn" type="date" min={MINIMUM_STAY_DATE} required />
